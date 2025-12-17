@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect } from 'react';
-import { Plus, ArrowLeft, Ban } from 'lucide-react';
+import { Plus, ArrowLeft, Ban, TrendingDown } from 'lucide-react';
 
 export function TransactionForm({ onAdd }: { onAdd: (dados: any) => void }) {
     const [tipo, setTipo] = useState<'entrada' | 'saida'>('entrada');
@@ -61,7 +61,7 @@ export function TransactionForm({ onAdd }: { onAdd: (dados: any) => void }) {
                             : 'bg-red-50 text-red-600 border-red-100 hover:bg-red-100'
                         }`}
                 >
-                    {tipo === 'entrada' ? <><Ban size={14} /> Registrar Sangria</> : <><ArrowLeft size={14} /> Voltar para Vendas</>}
+                    {tipo === 'entrada' ? <><TrendingDown size={14} /> Registrar Sangria</> : <><ArrowLeft size={14} /> Voltar para Vendas</>}
                 </button>
             </div>
 
