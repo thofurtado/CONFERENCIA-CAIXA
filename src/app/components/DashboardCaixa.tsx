@@ -1,6 +1,7 @@
 "use client"
 import { useState } from 'react';
-import { Anchor, Plus, CheckCircle2, Clock, Trash2, ShieldCheck } from 'lucide-react';
+import { Anchor, Plus, CheckCircle2, Clock, Trash2, ShieldCheck, Download, FileSpreadsheet } from 'lucide-react';
+import { exportarParaCSV } from '../utils/exportCSV';
 
 interface DashboardProps {
     lotes: any[];
@@ -14,9 +15,9 @@ export function DashboardCaixa({ lotes, onCriarNovo, onSelecionar, onApagar }: D
     const [novoPeriodo, setNovoPeriodo] = useState('Almoço');
 
     return (
-        <div className="min-h-screen bg-zinc-50 p-6 text-zinc-900 flex flex-col">
+        <div className="min-h-screen bg-zinc-50 p-4 md:p-6 text-zinc-900 flex flex-col">
             <div className="max-w-5xl mx-auto space-y-6 flex-1 w-full">
-                <header className="flex justify-between items-center mb-12">
+                <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                     <div className="flex items-center gap-4">
                         <div className="bg-zinc-900 p-3 rounded-2xl text-white shadow-xl shadow-zinc-200">
                             <Anchor size={32} />
@@ -26,14 +27,14 @@ export function DashboardCaixa({ lotes, onCriarNovo, onSelecionar, onApagar }: D
                             <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em]">Conferência</span>
                         </div>
                     </div>
-                    <div className="text-right border-l pl-4 border-zinc-200">
+                    <div className="text-left border-l pl-4 border-zinc-200">
                         <p className="text-[9px] font-black uppercase text-zinc-400">Responsável</p>
                         <p className="text-lg font-bold text-zinc-800 leading-none">Sara Shiva</p>
                     </div>
                 </header>
 
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-                    <div className="md:col-span-4 bg-white p-6 rounded-[2rem] border shadow-sm self-start">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <div className="lg:col-span-4 bg-white p-6 rounded-[2rem] border shadow-sm self-start">
                         <h2 className="text-[10px] font-black uppercase text-zinc-400 mb-6 flex items-center gap-2">
                             <Plus size={14} className="text-blue-600" /> Abrir Novo Caixa
                         </h2>
@@ -53,16 +54,24 @@ export function DashboardCaixa({ lotes, onCriarNovo, onSelecionar, onApagar }: D
                         </div>
                     </div>
 
-                    <div className="md:col-span-8 bg-white rounded-[2rem] border shadow-sm overflow-hidden flex flex-col">
-                        <div className="bg-zinc-50/50 px-6 py-4 border-b font-black text-[10px] text-zinc-400 uppercase flex justify-between">
-                            <span>Histórico Recente</span>
-                            <span className="text-zinc-300">{lotes.length} registros no banco</span>
+                    <div className="lg:col-span-8 bg-white rounded-[2rem] border shadow-sm overflow-hidden flex flex-col">
+                        <div className="bg-zinc-50/50 px-6 py-4 border-b flex justify-between items-center">
+                            <span className="font-black text-[10px] text-zinc-400 uppercase tracking-widest">Histórico Recente</span>
+
+                            {/* Botão de Exportar Tudo */}
+                            <button
+                                onClick={() => exportarParaCSV(lotes, "historico-total-marujo.csv")}
+                                className="flex items-center gap-2 bg-zinc-900 text-white px-3 py-1.5 rounded-lg font-black uppercase text-[9px] hover:bg-zinc-800 transition-all active:scale-95 shadow-sm"
+                            >
+                                <FileSpreadsheet size={12} />
+                                Exportar Tudo (CSV)
+                            </button>
                         </div>
 
                         <div className="overflow-y-auto max-h-[500px] divide-y">
                             {lotes.map(l => (
-                                <div key={l.id} onClick={() => onSelecionar(l.id)} className="px-6 py-4 flex justify-between items-center hover:bg-zinc-50 cursor-pointer group transition-colors">
-                                    <div className="flex items-center gap-4">
+                                <div key={l.id} className="px-6 py-4 flex justify-between items-center hover:bg-zinc-50 cursor-pointer group transition-colors">
+                                    <div className="flex items-center gap-4 flex-1" onClick={() => onSelecionar(l.id)}>
                                         {l.conferido ? <CheckCircle2 size={20} className="text-green-500" /> : <Clock size={20} className="text-amber-500" />}
                                         <div>
                                             <p className="font-black text-zinc-800 text-base">
@@ -74,9 +83,25 @@ export function DashboardCaixa({ lotes, onCriarNovo, onSelecionar, onApagar }: D
                                             </div>
                                         </div>
                                     </div>
-                                    <button onClick={(e) => { e.stopPropagation(); if (confirm('Apagar permanentemente?')) onApagar(l.id); }} className="text-zinc-200 hover:text-red-500 transition-colors p-2">
-                                        <Trash2 size={18} />
-                                    </button>
+
+                                    <div className="flex items-center gap-1 md:gap-3">
+                                        {/* Botão de Exportar Individual */}
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); exportarParaCSV([l], `caixa-${l.dataReferencia}-${l.periodo}.csv`); }}
+                                            className="text-zinc-300 hover:text-blue-600 transition-colors p-2"
+                                            title="Exportar CSV"
+                                        >
+                                            <Download size={18} />
+                                        </button>
+
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); if (confirm('Apagar permanentemente?')) onApagar(l.id); }}
+                                            className="text-zinc-300 hover:text-red-500 transition-colors p-2"
+                                            title="Apagar Registro"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                             {lotes.length === 0 && <div className="p-12 text-center text-zinc-400 text-sm italic">Nenhum caixa encontrado.</div>}
@@ -87,7 +112,7 @@ export function DashboardCaixa({ lotes, onCriarNovo, onSelecionar, onApagar }: D
 
             <footer className="max-w-5xl mx-auto w-full py-8 text-center mt-8">
                 <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-[0.2em] flex items-center justify-center gap-2">
-                    <ShieldCheck size={14} className="text-zinc-400" /> Desenvolvido por Eureca Tech — Thomás Furtado
+                    <ShieldCheck size={14} className="text-zinc-400" /> Eureca Tech — Thomás Furtado
                 </p>
             </footer>
         </div>
