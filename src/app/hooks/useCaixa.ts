@@ -6,15 +6,17 @@ export function useCaixa() {
     const [loteAtivoId, setLoteAtivoId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Carregar dados da Vercel KV ao iniciar
+    // 1. Busca os dados no banco da Vercel ao abrir o site
     useEffect(() => {
         async function carregarDados() {
             try {
                 const response = await fetch('/api/caixa');
-                const data = await response.json();
-                if (data) setLotes(data);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data) setLotes(data);
+                }
             } catch (error) {
-                console.error("Erro ao carregar dados:", error);
+                console.error("Erro ao carregar dados do banco:", error);
             } finally {
                 setIsLoading(false);
             }
@@ -22,7 +24,7 @@ export function useCaixa() {
         carregarDados();
     }, []);
 
-    // Sincronizar com a Vercel KV sempre que os lotes mudarem
+    // 2. Função para enviar os dados para a nuvem
     const salvarNoBanco = async (novosLotes: any[]) => {
         try {
             await fetch('/api/caixa', {
@@ -31,7 +33,7 @@ export function useCaixa() {
                 headers: { 'Content-Type': 'application/json' }
             });
         } catch (error) {
-            console.error("Erro ao salvar no banco:", error);
+            console.error("Erro ao sincronizar com o banco:", error);
         }
     };
 
@@ -69,14 +71,15 @@ export function useCaixa() {
                 if (l.isCaixinha) r.CAIXA.caixinhasGeral += valor;
             }
         });
-
         r.GERAL.saldo = r.GERAL.entradas - r.GERAL.saidas;
         return r;
     }, [loteAtivo]);
 
     const criarNovoLote = (data: string, periodo: string) => {
+        // Regra personalizada: impede duplicata no mesmo dia/período
         if (lotes.find(l => l.dataReferencia === data && l.periodo === periodo)) {
-            alert("Já existe um caixa para este período hoje."); return;
+            alert("Já existe um caixa para este período hoje.");
+            return;
         }
         const novo = { id: Date.now().toString(), dataReferencia: data, periodo: periodo, lancamentos: [], conferido: false };
         const novaLista = [novo, ...lotes];
@@ -87,27 +90,20 @@ export function useCaixa() {
 
     const adicionarLancamento = (dados: any) => {
         if (!loteAtivoId) return;
-        const novoLancamento = {
-            ...dados,
-            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-        };
-        const novaLista = lotes.map(l =>
-            l.id === loteAtivoId ? { ...l, lancamentos: [novoLancamento, ...l.lancamentos] } : l
-        );
+        const novoLancamento = { ...dados, id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}` };
+        const novaLista = lotes.map(l => l.id === loteAtivoId ? { ...l, lancamentos: [novoLancamento, ...l.lancamentos] } : l);
         setLotes(novaLista);
         salvarNoBanco(novaLista);
     };
 
     const removerLancamento = (id: string | number) => {
-        const novaLista = lotes.map(l =>
-            l.id === loteAtivoId ? { ...l, lancamentos: l.lancamentos.filter((lan: any) => lan.id !== id) } : l
-        );
+        const novaLista = lotes.map(l => l.id === loteAtivoId ? { ...l, lancamentos: l.lancamentos.filter((lan: any) => lan.id !== id) } : l);
         setLotes(novaLista);
         salvarNoBanco(novaLista);
     };
 
     const apagarLote = (id: string) => {
-        if (confirm("Apagar?")) {
+        if (confirm("Apagar este caixa permanentemente?")) {
             const novaLista = lotes.filter(l => l.id !== id);
             setLotes(novaLista);
             if (loteAtivoId === id) setLoteAtivoId(null);

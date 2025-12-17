@@ -4,12 +4,20 @@ import { NextResponse } from 'next/server';
 const CAIXA_KEY = 'caixa_data_v1';
 
 export async function GET() {
-    const data = await kv.get(CAIXA_KEY);
-    return NextResponse.json(data || []);
+    try {
+        const data = await kv.get(CAIXA_KEY);
+        return NextResponse.json(data || []);
+    } catch (error) {
+        return NextResponse.json({ error: 'Erro ao ler banco' }, { status: 500 });
+    }
 }
 
 export async function POST(request: Request) {
-    const body = await request.json();
-    await kv.set(CAIXA_KEY, body);
-    return NextResponse.json({ success: true });
+    try {
+        const body = await request.json();
+        await kv.set(CAIXA_KEY, body);
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        return NextResponse.json({ error: 'Erro ao salvar banco' }, { status: 500 });
+    }
 }
