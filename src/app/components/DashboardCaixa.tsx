@@ -1,6 +1,6 @@
 "use client"
 import { useState } from 'react';
-import { ClipboardCheck, Plus, CheckCircle2, Clock, Trash2 } from 'lucide-react';
+import { Anchor, Plus, CheckCircle2, Clock, Trash2, ShieldCheck } from 'lucide-react';
 
 interface DashboardProps {
     lotes: any[];
@@ -14,92 +14,82 @@ export function DashboardCaixa({ lotes, onCriarNovo, onSelecionar, onApagar }: D
     const [novoPeriodo, setNovoPeriodo] = useState('Almoço');
 
     return (
-        <div className="min-h-screen bg-zinc-50 p-6 text-zinc-900">
-            <div className="max-w-5xl mx-auto space-y-6">
-                <header className="flex items-center gap-2 mb-8">
-                    <ClipboardCheck className="text-blue-600" size={28} />
-                    <h1 className="text-xl font-black uppercase tracking-tighter">Gestão de Caixa</h1>
+        <div className="min-h-screen bg-zinc-50 p-6 text-zinc-900 flex flex-col">
+            <div className="max-w-5xl mx-auto space-y-6 flex-1 w-full">
+                <header className="flex justify-between items-center mb-12">
+                    <div className="flex items-center gap-4">
+                        <div className="bg-zinc-900 p-3 rounded-2xl text-white shadow-xl shadow-zinc-200">
+                            <Anchor size={32} />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-black uppercase tracking-tighter leading-none text-zinc-900">Marujo</h1>
+                            <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em]">Conferência</span>
+                        </div>
+                    </div>
+                    <div className="text-right border-l pl-4 border-zinc-200">
+                        <p className="text-[9px] font-black uppercase text-zinc-400">Responsável</p>
+                        <p className="text-lg font-bold text-zinc-800 leading-none">Sara Shiva</p>
+                    </div>
                 </header>
 
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                    {/* Lado Esquerdo: Novo Período */}
-                    <div className="md:col-span-4 bg-white p-6 rounded-3xl border shadow-sm self-start">
-                        <h2 className="text-[10px] font-black uppercase text-zinc-400 mb-4 flex items-center gap-2">
-                            <Plus size={14} /> Novo Período
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+                    <div className="md:col-span-4 bg-white p-6 rounded-[2rem] border shadow-sm self-start">
+                        <h2 className="text-[10px] font-black uppercase text-zinc-400 mb-6 flex items-center gap-2">
+                            <Plus size={14} className="text-blue-600" /> Abrir Novo Caixa
                         </h2>
                         <div className="space-y-4">
-                            <input type="date" value={novaData} onChange={e => setNovaData(e.target.value)} className="w-full border rounded-xl p-3 font-bold outline-none focus:ring-2 ring-blue-100" />
-                            <select value={novoPeriodo} onChange={e => setNovoPeriodo(e.target.value)} className="w-full border rounded-xl p-3 font-bold outline-none focus:ring-2 ring-blue-100">
-                                <option value="Almoço">Almoço</option>
-                                <option value="Jantar">Jantar</option>
-                            </select>
-                            <button onClick={() => onCriarNovo(novaData, novoPeriodo)} className="w-full bg-blue-600 text-white font-black uppercase text-xs py-4 rounded-xl hover:bg-blue-700 transition-all">Iniciar Caixa</button>
+                            <div>
+                                <label className="text-[9px] font-bold text-zinc-400 uppercase ml-2 mb-1 block">Data do Movimento</label>
+                                <input type="date" value={novaData} onChange={e => setNovaData(e.target.value)} className="w-full border rounded-xl p-3 font-bold bg-zinc-50 border-zinc-100 outline-none focus:ring-2 ring-blue-100" />
+                            </div>
+                            <div>
+                                <label className="text-[9px] font-bold text-zinc-400 uppercase ml-2 mb-1 block">Período</label>
+                                <select value={novoPeriodo} onChange={e => setNovoPeriodo(e.target.value)} className="w-full border rounded-xl p-3 font-bold bg-zinc-50 border-zinc-100 outline-none focus:ring-2 ring-blue-100">
+                                    <option value="Almoço">Almoço</option>
+                                    <option value="Jantar">Jantar</option>
+                                </select>
+                            </div>
+                            <button onClick={() => onCriarNovo(novaData, novoPeriodo)} className="w-full bg-blue-600 text-white font-black uppercase text-[10px] py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">Iniciar Expediente</button>
                         </div>
                     </div>
 
-                    {/* Lado Direito: Histórico Compacto com Scroll */}
-                    <div className="md:col-span-8 bg-white rounded-3xl border shadow-sm overflow-hidden flex flex-col">
-                        <div className="bg-zinc-50 px-5 py-3 border-b font-black text-[10px] text-zinc-400 uppercase flex justify-between">
-                            <span>Histórico de Períodos</span>
-                            <span>{lotes.length} Registros</span>
+                    <div className="md:col-span-8 bg-white rounded-[2rem] border shadow-sm overflow-hidden flex flex-col">
+                        <div className="bg-zinc-50/50 px-6 py-4 border-b font-black text-[10px] text-zinc-400 uppercase flex justify-between">
+                            <span>Histórico Recente</span>
+                            <span className="text-zinc-300">{lotes.length} registros no banco</span>
                         </div>
 
-                        {/* Container com Scroll Horizontal e Vertical */}
-                        <div className="overflow-x-auto overflow-y-auto max-h-[600px]">
-                            <div className="divide-y min-w-[500px]"> {/* min-w força o scroll horizontal antes de quebrar */}
-                                {lotes.map(l => (
-                                    <div
-                                        key={l.id}
-                                        onClick={() => onSelecionar(l.id)}
-                                        className="px-5 py-3 flex justify-between items-center hover:bg-zinc-50 cursor-pointer group transition-colors"
-                                    >
-                                        <div className="flex items-center gap-4 flex-1">
-                                            {/* Status */}
-                                            {l.conferido ? <CheckCircle2 size={18} className="text-green-500 shrink-0" /> : <Clock size={18} className="text-amber-500 shrink-0" />}
-
-                                            {/* Linha Única Horizontal */}
-                                            <div className="flex items-center gap-4 w-full">
-                                                <p className="font-bold text-zinc-800 text-sm whitespace-nowrap">
-                                                    {new Date(l.dataReferencia).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
-                                                </p>
-
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-0.5 rounded tracking-wider">
-                                                        {l.periodo}
-                                                    </span>
-                                                    <span className="text-[9px] font-bold text-zinc-400 uppercase bg-zinc-100 px-1.5 py-0.5 rounded whitespace-nowrap">
-                                                        {l.lancamentos?.length || 0} itens
-                                                    </span>
-                                                </div>
+                        <div className="overflow-y-auto max-h-[500px] divide-y">
+                            {lotes.map(l => (
+                                <div key={l.id} onClick={() => onSelecionar(l.id)} className="px-6 py-4 flex justify-between items-center hover:bg-zinc-50 cursor-pointer group transition-colors">
+                                    <div className="flex items-center gap-4">
+                                        {l.conferido ? <CheckCircle2 size={20} className="text-green-500" /> : <Clock size={20} className="text-amber-500" />}
+                                        <div>
+                                            <p className="font-black text-zinc-800 text-base">
+                                                {new Date(l.dataReferencia).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                                            </p>
+                                            <div className="flex gap-2 items-center">
+                                                <span className="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{l.periodo}</span>
+                                                <span className="text-[9px] font-bold text-zinc-400 uppercase">{l.lancamentos?.length || 0} lançamentos</span>
                                             </div>
                                         </div>
-
-                                        <div className="flex items-center gap-4 shrink-0">
-                                            <div className="text-right">
-                                                <p className={`text-[9px] font-black uppercase ${l.conferido ? 'text-green-600' : 'text-amber-600'}`}>
-                                                    {l.conferido ? 'Conferido' : 'Pendente'}
-                                                </p>
-                                            </div>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); if (confirm('Apagar este período?')) onApagar(l.id); }}
-                                                className="text-zinc-200 hover:text-red-500 transition-colors p-1"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
                                     </div>
-                                ))}
-
-                                {lotes.length === 0 && (
-                                    <div className="p-10 text-center text-zinc-400 text-sm italic font-medium">
-                                        Nenhum caixa registrado ainda.
-                                    </div>
-                                )}
-                            </div>
+                                    <button onClick={(e) => { e.stopPropagation(); if (confirm('Apagar permanentemente?')) onApagar(l.id); }} className="text-zinc-200 hover:text-red-500 transition-colors p-2">
+                                        <Trash2 size={18} />
+                                    </button>
+                                </div>
+                            ))}
+                            {lotes.length === 0 && <div className="p-12 text-center text-zinc-400 text-sm italic">Nenhum caixa encontrado.</div>}
                         </div>
                     </div>
                 </div>
             </div>
+
+            <footer className="max-w-5xl mx-auto w-full py-8 text-center mt-8">
+                <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-[0.2em] flex items-center justify-center gap-2">
+                    <ShieldCheck size={14} className="text-zinc-400" /> Desenvolvido por Eureca Tech — Thomás Furtado
+                </p>
+            </footer>
         </div>
     );
 }

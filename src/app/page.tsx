@@ -1,4 +1,5 @@
 "use client"
+import { useEffect } from 'react';
 import { useCaixa } from './hooks/useCaixa';
 import { DashboardCaixa } from './components/DashboardCaixa';
 import { DetalheLote } from './components/DetalheLote';
@@ -14,6 +15,11 @@ export default function Home() {
     apagarLote,
     resumoLote
   } = useCaixa();
+
+  // Atualiza o título da aba no navegador
+  useEffect(() => {
+    document.title = "Marujo | Eureca Tech";
+  }, []);
 
   if (!loteAtivo) {
     return (
