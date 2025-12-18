@@ -131,7 +131,10 @@ export function DetalheLote({ loteAtivo, resumoLote, onVoltar, onAdicionarLancam
             </header>
 
             <div className="max-w-[1400px] mx-auto space-y-4 md:space-y-6">
-                <SummaryCards resumo={resumoLote} />
+                <SummaryCards
+                    resumo={resumoLote}
+                    onEditAbertura={onEditarAbertura}
+                />
                 <TransactionForm onAdd={onAdicionarLancamento} />
 
                 {/* Tabela de Vendas */}
@@ -258,7 +261,7 @@ export function DetalheLote({ loteAtivo, resumoLote, onVoltar, onAdicionarLancam
                                                 </>
                                             ) : (
                                                 <>
-                                                    <td className="p-4 font-bold">MESA {l.mesa || '--'}</td>
+                                                    <td className="p-4 font-bold"> M {l.mesa || '--'}</td>
                                                     <td className="p-4 font-black text-[9px] text-zinc-400 uppercase">{l.banco}</td>
                                                     <td className="p-4 font-bold text-zinc-500 uppercase text-[9px]">
                                                         {l.formaPagamento} {l.valorCaixinha > 0 && <span className="text-pink-500 ml-1">♥</span>}

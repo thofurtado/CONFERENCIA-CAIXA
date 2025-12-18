@@ -1,10 +1,15 @@
 "use client"
-import { Banknote, Coffee, Building2, CreditCard, Smartphone, Landmark, Heart, Ticket } from 'lucide-react'; // Adicionei Ticket para o Voucher
+import { useState } from 'react';
+import { Banknote, CreditCard, Smartphone, Landmark, Heart, Ticket, Edit2, Check, X } from 'lucide-react';
 
 const BANCOS_DIGITAIS = ['SAFRA', 'PAGBANK', 'CIELO'] as const;
 const FORMAS_CASA = ['Funcionário', 'Pró-labore', 'Cortesia', 'Permuta'] as const;
 
-export function SummaryCards({ resumo }: { resumo: any }) {
+// Adicionei onEditAbertura nas propriedades
+export function SummaryCards({ resumo, onEditAbertura }: { resumo: any, onEditAbertura?: (valor: number) => void }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [tempAbertura, setTempAbertura] = useState('');
+
   const safeGet = (obj: any, path: string) => {
     const value = path.split('.').reduce((acc, part) => acc && acc[part], obj);
     return typeof value === 'number' ? value : 0;
@@ -21,26 +26,36 @@ export function SummaryCards({ resumo }: { resumo: any }) {
   const saidasDinheiro = safeGet(resumo, 'CAIXA.totalSaidas');
   const saldoFinalDinheiro = abertura + entradasDinheiro - saidasDinheiro;
 
+  const handleStartEdit = () => {
+    setTempAbertura(abertura.toString());
+    setIsEditing(true);
+  };
+
+  const handleSave = () => {
+    const novoValor = parseFloat(tempAbertura);
+    if (!isNaN(novoValor) && onEditAbertura) {
+      onEditAbertura(novoValor);
+    }
+    setIsEditing(false);
+  };
+
   return (
     <div className="space-y-4">
-      {/* HEADER COMPACTO COM CAIXINHA E VOUCHER */}
+      {/* HEADER COMPACTO */}
       <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 shadow-lg">
         <div className="flex flex-col md:flex-row items-center gap-4 justify-between">
-
           <div className="flex items-center gap-6 px-2">
             <div>
               <p className="text-[7px] font-black text-zinc-500 uppercase tracking-tighter italic">Vendas Líquidas</p>
               <p className="text-xs font-mono font-bold text-emerald-500">R$ {safeGet(resumo, 'GERAL.entradas').toFixed(2)}</p>
             </div>
             <div className="w-[1px] h-6 bg-zinc-800" />
-
             <div>
               <p className="text-[7px] font-black text-pink-500 uppercase tracking-tighter flex items-center gap-1">
                 <Heart size={8} fill="currentColor" /> Caixinhas
               </p>
               <p className="text-xs font-mono font-bold text-pink-200">R$ {totalCaixinha.toFixed(2)}</p>
             </div>
-
             <div className="w-[1px] h-6 bg-zinc-800" />
             <div>
               <p className="text-[7px] font-black text-blue-400 uppercase tracking-tighter italic">Total em Caixa</p>
@@ -48,7 +63,6 @@ export function SummaryCards({ resumo }: { resumo: any }) {
             </div>
           </div>
 
-          {/* GRID DE MÉTODOS ELETRÔNICOS (Agora com Voucher) */}
           <div className="flex gap-1 border-t md:border-t-0 md:border-l border-zinc-800 pt-3 md:pt-0 md:pl-4">
             <div className="flex flex-col items-center px-2">
               <span className="text-[7px] font-bold text-zinc-500 uppercase mb-1 flex items-center gap-1"><Smartphone size={8} /> Pix</span>
@@ -62,7 +76,6 @@ export function SummaryCards({ resumo }: { resumo: any }) {
               <span className="text-[7px] font-bold text-zinc-500 uppercase mb-1 flex items-center gap-1"><CreditCard size={8} /> Crédito</span>
               <span className="text-[10px] font-mono font-bold text-zinc-300">{(totalPorForma('Crédito')).toFixed(2)}</span>
             </div>
-            {/* NOVO: SOMATÓRIA GERAL DE VOUCHER */}
             <div className="flex flex-col items-center px-2">
               <span className="text-[7px] font-bold text-purple-400 uppercase mb-1 flex items-center gap-1"><Ticket size={8} /> Voucher</span>
               <span className="text-[10px] font-mono font-bold text-purple-300">{(totalPorForma('Voucher')).toFixed(2)}</span>
@@ -72,16 +85,33 @@ export function SummaryCards({ resumo }: { resumo: any }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-
-        {/* CAIXA FÍSICO */}
-        <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+        {/* CAIXA FÍSICO COM EDIÇÃO DE ABERTURA */}
+        <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 shadow-sm relative overflow-hidden group">
           <Banknote size={32} className="absolute -right-2 -top-2 opacity-10 text-emerald-600 rotate-12" />
           <h2 className="font-black text-emerald-700 text-[9px] mb-3 flex items-center gap-2 uppercase tracking-tight">
             Fluxo Dinheiro (Espécie)
           </h2>
           <div className="space-y-1">
-            <div className="flex justify-between text-[10px] text-emerald-800 font-bold italic underline decoration-emerald-200">
-              <span>Abertura*</span><span>{abertura.toFixed(2)}</span>
+            <div className="flex justify-between items-center text-[10px] text-emerald-800 font-bold italic">
+              <span className="underline decoration-emerald-200">Abertura</span>
+              {isEditing ? (
+                <div className="flex items-center gap-1 bg-white p-1 rounded shadow-inner border border-emerald-200">
+                  <input
+                    type="number"
+                    value={tempAbertura}
+                    onChange={(e) => setTempAbertura(e.target.value)}
+                    className="w-16 bg-transparent outline-none font-mono text-emerald-900"
+                    autoFocus
+                  />
+                  <button onClick={handleSave} className="text-emerald-600 hover:text-emerald-800"><Check size={12} /></button>
+                  <button onClick={() => setIsEditing(false)} className="text-red-400 hover:text-red-600"><X size={12} /></button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 group/btn cursor-pointer" onClick={handleStartEdit}>
+                  <span>{abertura.toFixed(2)}</span>
+                  <Edit2 size={8} className="opacity-0 group-hover/btn:opacity-100 text-emerald-600" />
+                </div>
+              )}
             </div>
             <div className="flex justify-between text-[10px] text-emerald-800/60 font-medium"><span>Vendas Dinheiro</span><span>{entradasDinheiro.toFixed(2)}</span></div>
             <div className="flex justify-between text-[10px] text-red-500 font-bold"><span>Saídas/Sangria</span><span>-{saidasDinheiro.toFixed(2)}</span></div>
@@ -92,7 +122,7 @@ export function SummaryCards({ resumo }: { resumo: any }) {
           </div>
         </div>
 
-        {/* BANCOS DETALHADOS (Agora com linha Voucher em cada banco) */}
+        {/* BANCOS DETALHADOS */}
         {BANCOS_DIGITAIS.map(banco => (
           <div key={banco} className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm">
             <h2 className="font-black text-zinc-400 text-[9px] mb-3 flex items-center gap-2 uppercase tracking-tight">
@@ -102,8 +132,6 @@ export function SummaryCards({ resumo }: { resumo: any }) {
               <div className="flex justify-between text-zinc-500"><span>Pix</span><span className="text-zinc-900 font-mono font-bold">{safeGet(resumo, `${banco}.PIX`).toFixed(2)}</span></div>
               <div className="flex justify-between text-zinc-500"><span>Débito</span><span className="text-zinc-900 font-mono font-bold">{safeGet(resumo, `${banco}.Débito`).toFixed(2)}</span></div>
               <div className="flex justify-between text-zinc-500"><span>Crédito</span><span className="text-zinc-900 font-mono font-bold">{safeGet(resumo, `${banco}.Crédito`).toFixed(2)}</span></div>
-
-              {/* NOVO: LINHA VOUCHER POR BANCO */}
               <div className="flex justify-between text-purple-600 font-medium"><span>Voucher</span><span className="font-mono font-bold">{safeGet(resumo, `${banco}.Voucher`).toFixed(2)}</span></div>
 
               {safeGet(resumo, `${banco}.caixinha`) > 0 && (
@@ -120,7 +148,7 @@ export function SummaryCards({ resumo }: { resumo: any }) {
 
         {/* CASA */}
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 shadow-inner">
-          <h2 className="font-black text-orange-500 text-[9px] mb-3 flex items-center gap-2 uppercase italic tracking-tight text-center">
+          <h2 className="font-black text-orange-500 text-[9px] mb-3 flex items-center gap-2 uppercase italic tracking-tight">
             Consumo Interno
           </h2>
           <div className="space-y-1 text-[9px]">
@@ -136,7 +164,6 @@ export function SummaryCards({ resumo }: { resumo: any }) {
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );
