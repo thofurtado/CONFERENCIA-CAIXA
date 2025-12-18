@@ -1,115 +1,92 @@
 "use client"
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 
 export function useCaixa() {
     const [lotes, setLotes] = useState<any[]>([]);
     const [loteAtivoId, setLoteAtivoId] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
 
-    // 1. Busca os dados no banco da Vercel ao abrir o site
     useEffect(() => {
-        async function carregarDados() {
-            try {
-                const response = await fetch('/api/caixa');
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data) setLotes(data);
-                }
-            } catch (error) {
-                console.error("Erro ao carregar dados do banco:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        }
-        carregarDados();
+        const saved = localStorage.getItem('@marujo-caixa');
+        if (saved) setLotes(JSON.parse(saved));
     }, []);
 
-    // 2. Função para enviar os dados para a nuvem
-    const salvarNoBanco = async (novosLotes: any[]) => {
-        try {
-            await fetch('/api/caixa', {
-                method: 'POST',
-                body: JSON.stringify(novosLotes),
-                headers: { 'Content-Type': 'application/json' }
-            });
-        } catch (error) {
-            console.error("Erro ao sincronizar com o banco:", error);
-        }
-    };
+    useEffect(() => {
+        localStorage.setItem('@marujo-caixa', JSON.stringify(lotes));
+    }, [lotes]);
 
-    const loteAtivo = useMemo(() => lotes.find(l => l.id === loteAtivoId), [lotes, loteAtivoId]);
+    const loteAtivo = lotes.find(l => l.id === loteAtivoId);
 
-    const resumoLote = useMemo(() => {
-        const r = {
-            CAIXA: { Dinheiro: 0, caixinhasGeral: 0, totalSaidas: 0 },
-            CASA: { Funcionário: 0, 'Pró-labore': 0, Cortesia: 0, Permuta: 0 },
-            SAFRA: { PIX: 0, Débito: 0, Crédito: 0, total: 0 },
-            PAGBANK: { PIX: 0, Débito: 0, Crédito: 0, total: 0 },
-            CIELO: { PIX: 0, Débito: 0, Crédito: 0, total: 0 },
-            GERAL: { entradas: 0, saidas: 0, saldo: 0 }
+    const resumoLote = loteAtivo ? (() => {
+        const lancamentos = loteAtivo.lancamentos || [];
+        const bancos = ['SAFRA', 'PAGBANK', 'CIELO'];
+        const formasCasa = ['Funcionário', 'Pró-labore', 'Cortesia', 'Permuta'];
+
+        const resumo: any = {
+            GERAL: { entradas: 0, totalCaixinha: 0, saldo: 0 },
+            CAIXA: { saldoAbertura: Number(loteAtivo.valorAbertura || 0), entradasDinheiro: 0, totalSaidas: 0 },
+            CASA: { total: 0 }
         };
 
-        loteAtivo?.lancamentos.forEach((l: any) => {
-            const valor = l.valor;
+        // Inicializa bancos e formas da casa no objeto
+        bancos.forEach(b => {
+            resumo[b] = { PIX: 0, Débito: 0, Crédito: 0, caixinha: 0, total: 0 };
+        });
+        formasCasa.forEach(f => { resumo.CASA[f] = 0; });
+
+        lancamentos.forEach((l: any) => {
+            const valor = Number(l.valor || 0);
+            const caixinha = Number(l.valorCaixinha || 0);
+            const valorRealVenda = valor - caixinha;
+
             if (l.isSaida) {
-                r.CAIXA.totalSaidas += valor;
-                r.CAIXA.Dinheiro -= valor;
-                r.GERAL.saidas += valor;
+                resumo.CAIXA.totalSaidas += valor;
             } else {
-                r.GERAL.entradas += valor;
-                if (l.banco === 'CAIXA') r.CAIXA.Dinheiro += valor;
-                else if (l.banco === 'CONTA DA CASA') {
-                    const forma = l.formaPagamento as keyof typeof r.CASA;
-                    if (r.CASA[forma] !== undefined) r.CASA[forma] += valor;
+                // Soma Caixinha Geral
+                resumo.GERAL.totalCaixinha += caixinha;
+
+                if (l.formaPagamento === 'Dinheiro') {
+                    resumo.CAIXA.entradasDinheiro += valorRealVenda;
+                    resumo.GERAL.entradas += valorRealVenda;
+                } else if (bancos.includes(l.banco)) {
+                    resumo[l.banco][l.formaPagamento] += valorRealVenda;
+                    resumo[l.banco].caixinha += caixinha;
+                    resumo[l.banco].total += valorRealVenda;
+                    resumo.GERAL.entradas += valorRealVenda;
+                } else if (formasCasa.includes(l.formaPagamento)) {
+                    resumo.CASA[l.formaPagamento] += valorRealVenda;
+                    resumo.CASA.total += valorRealVenda;
                 }
-                else if (['SAFRA', 'PAGBANK', 'CIELO'].includes(l.banco)) {
-                    const b = l.banco as 'SAFRA' | 'PAGBANK' | 'CIELO';
-                    const forma = l.formaPagamento as 'PIX' | 'Débito' | 'Crédito';
-                    (r[b] as any)[forma] += valor;
-                    (r[b] as any).total += valor;
-                }
-                if (l.isCaixinha) r.CAIXA.caixinhasGeral += valor;
             }
         });
-        r.GERAL.saldo = r.GERAL.entradas - r.GERAL.saidas;
-        return r;
-    }, [loteAtivo]);
 
-    const criarNovoLote = (data: string, periodo: string) => {
-        // Regra personalizada: impede duplicata no mesmo dia/período
-        if (lotes.find(l => l.dataReferencia === data && l.periodo === periodo)) {
-            alert("Já existe um caixa para este período hoje.");
-            return;
-        }
-        const novo = { id: Date.now().toString(), dataReferencia: data, periodo: periodo, lancamentos: [], conferido: false };
-        const novaLista = [novo, ...lotes];
-        setLotes(novaLista);
-        setLoteAtivoId(novo.id);
-        salvarNoBanco(novaLista);
+        resumo.GERAL.saldo = resumo.GERAL.entradas - resumo.CAIXA.totalSaidas;
+        return resumo;
+    })() : null;
+
+    const criarNovoLote = (data: string, periodo: string, abertura: number) => {
+        // Correção do Invalid Date: Garantir que a string de data esteja no formato correto
+        const id = Date.now().toString();
+        const novo = {
+            id,
+            dataReferencia: data, // Salva a string "YYYY-MM-DD" diretamente
+            periodo,
+            valorAbertura: Number(abertura),
+            lancamentos: [],
+            status: 'aberto'
+        };
+        setLotes([...lotes, novo]);
+        setLoteAtivoId(id);
     };
 
-    const adicionarLancamento = (dados: any) => {
-        if (!loteAtivoId) return;
-        const novoLancamento = { ...dados, id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}` };
-        const novaLista = lotes.map(l => l.id === loteAtivoId ? { ...l, lancamentos: [novoLancamento, ...l.lancamentos] } : l);
-        setLotes(novaLista);
-        salvarNoBanco(novaLista);
+    const adicionarLancamento = (novo: any) => {
+        setLotes(lotes.map(l => (l.id === loteAtivoId ? { ...l, lancamentos: [...l.lancamentos, { ...novo, id: Date.now().toString() }] } : l)));
     };
 
-    const removerLancamento = (id: string | number) => {
-        const novaLista = lotes.map(l => l.id === loteAtivoId ? { ...l, lancamentos: l.lancamentos.filter((lan: any) => lan.id !== id) } : l);
-        setLotes(novaLista);
-        salvarNoBanco(novaLista);
+    const removerLancamento = (id: string) => {
+        setLotes(lotes.map(l => (l.id === loteAtivoId ? { ...l, lancamentos: l.lancamentos.filter((lan: any) => lan.id !== id) } : l)));
     };
 
-    const apagarLote = (id: string) => {
-        if (confirm("Apagar este caixa permanentemente?")) {
-            const novaLista = lotes.filter(l => l.id !== id);
-            setLotes(novaLista);
-            if (loteAtivoId === id) setLoteAtivoId(null);
-            salvarNoBanco(novaLista);
-        }
-    };
+    const apagarLote = (id: string) => setLotes(lotes.filter(l => l.id !== id));
 
-    return { lotes, loteAtivo, setLoteAtivoId, criarNovoLote, adicionarLancamento, removerLancamento, apagarLote, resumoLote, isLoading };
+    return { lotes, loteAtivo, setLoteAtivoId, criarNovoLote, adicionarLancamento, removerLancamento, apagarLote, resumoLote };
 }

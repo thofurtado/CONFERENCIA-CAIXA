@@ -2,8 +2,17 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export const exportarLotePDF = (lote: any, resumo: any) => {
+    if (!resumo) return;
+
     const doc = new jsPDF();
-    const dataFormatada = new Date(lote.dataReferencia).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+
+    // Correção para evitar Invalid Date
+    const formatarDataBR = (dataString: string) => {
+        if (!dataString) return '--/--/----';
+        const [ano, mes, dia] = dataString.split('-');
+        return `${dia}/${mes}/${ano}`;
+    };
+    const dataFormatada = formatarDataBR(lote.dataReferencia);
 
     // --- CABEÇALHO IDENTIDADE VISUAL ---
     doc.setFillColor(30, 41, 59); // Azul Marinho Escuro (Marujo)
@@ -22,93 +31,123 @@ export const exportarLotePDF = (lote: any, resumo: any) => {
     doc.setTextColor(100);
     doc.text(`Data: ${dataFormatada}  |  Gerente Responsável: Sara`, 14, 43);
 
-    // --- NOVO: RESUMO DE FLUXO (IGUAL À TELA ANTERIOR) ---
+    // --- 1. FLUXO DE CAIXA (SUMÁRIO GERAL) ---
     doc.setFontSize(14);
     doc.setTextColor(37, 99, 235);
     doc.text('FLUXO DE CAIXA', 14, 55);
 
     autoTable(doc, {
         startY: 60,
-        head: [['Total de Entradas', 'Total de Saídas', 'Saldo Líquido']],
+        head: [['Vendas Líquidas', 'Total Caixinhas', 'Total Saídas', 'Saldo Líquido']],
         body: [[
-            `R$ ${resumo.GERAL.entradas.toFixed(2)}`,
-            `R$ ${resumo.GERAL.saidas.toFixed(2)}`,
+            `R$ ${Number(resumo.GERAL.entradas || 0).toFixed(2).replace('.', ',')}`,
+            `R$ ${Number(resumo.GERAL.totalCaixinha || 0).toFixed(2).replace('.', ',')}`,
+            `R$ ${Number(resumo.CAIXA.totalSaidas || 0).toFixed(2).replace('.', ',')}`,
             {
-                content: `R$ ${resumo.GERAL.saldo.toFixed(2)}`,
+                content: `R$ ${Number(resumo.GERAL.saldo || 0).toFixed(2).replace('.', ',')}`,
                 styles: { fontStyle: 'bold', textColor: [0, 0, 0] }
             }
         ]],
         theme: 'grid',
         headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold' },
-        styles: { fontSize: 12, halign: 'center' }
+        styles: { fontSize: 10, halign: 'center' }
     });
 
-    // --- RESUMO POR BANCO/MÁQUINA ---
+    // --- 2. RESUMO POR BANCO/MÁQUINA ---
     const bancoY = (doc as any).lastAutoTable.finalY + 15;
     doc.setFontSize(14);
     doc.setTextColor(37, 99, 235);
     doc.text('RESUMO POR BANCO/MÁQUINA', 14, bancoY);
 
     const resumoData = [
-        ['CAIXA (DINHEIRO)', `R$ ${resumo.CAIXA.Dinheiro.toFixed(2)}`, `Caixinhas: R$ ${resumo.CAIXA.caixinhasGeral.toFixed(2)}`],
-        ['SAFRA', `R$ ${resumo.SAFRA.total.toFixed(2)}`, `PIX: ${resumo.SAFRA.PIX.toFixed(2)} | Déb: ${resumo.SAFRA.Débito.toFixed(2)} | Créd: ${resumo.SAFRA.Crédito.toFixed(2)}`],
-        ['PAGBANK', `R$ ${resumo.PAGBANK.total.toFixed(2)}`, `PIX: ${resumo.PAGBANK.PIX.toFixed(2)} | Déb: ${resumo.PAGBANK.Débito.toFixed(2)} | Créd: ${resumo.PAGBANK.Crédito.toFixed(2)}`],
-        ['CIELO', `R$ ${resumo.CIELO.total.toFixed(2)}`, `PIX: ${resumo.CIELO.PIX.toFixed(2)} | Déb: ${resumo.CIELO.Débito.toFixed(2)} | Créd: ${resumo.CIELO.Crédito.toFixed(2)}`],
-        ['CONTA DA CASA', `R$ ${(resumo.CASA.Funcionário + resumo.CASA['Pró-labore'] + resumo.CASA.Cortesia + resumo.CASA.Permuta).toFixed(2)}`, `Pro-labore: ${resumo.CASA['Pró-labore'].toFixed(2)} | Cortesia: ${resumo.CASA.Cortesia.toFixed(2)}`],
+        [
+            'CAIXA (DINHEIRO)',
+            `R$ ${Number(resumo.CAIXA.entradasDinheiro || 0).toFixed(2).replace('.', ',')}`,
+            `Abertura: R$ ${Number(resumo.CAIXA.saldoAbertura || 0).toFixed(2).replace('.', ',')}`
+        ],
+        [
+            'SAFRA',
+            `R$ ${Number(resumo.SAFRA.total || 0).toFixed(2).replace('.', ',')}`,
+            `PIX: ${resumo.SAFRA.PIX.toFixed(2)} | Déb: ${resumo.SAFRA.Débito.toFixed(2)} | Créd: ${resumo.SAFRA.Crédito.toFixed(2)} | Caixinha: ${resumo.SAFRA.caixinha.toFixed(2)}`
+        ],
+        [
+            'PAGBANK',
+            `R$ ${Number(resumo.PAGBANK.total || 0).toFixed(2).replace('.', ',')}`,
+            `PIX: ${resumo.PAGBANK.PIX.toFixed(2)} | Déb: ${resumo.PAGBANK.Débito.toFixed(2)} | Créd: ${resumo.PAGBANK.Crédito.toFixed(2)} | Caixinha: ${resumo.PAGBANK.caixinha.toFixed(2)}`
+        ],
+        [
+            'CIELO',
+            `R$ ${Number(resumo.CIELO.total || 0).toFixed(2).replace('.', ',')}`,
+            `PIX: ${resumo.CIELO.PIX.toFixed(2)} | Déb: ${resumo.CIELO.Débito.toFixed(2)} | Créd: ${resumo.CIELO.Crédito.toFixed(2)} | Caixinha: ${resumo.CIELO.caixinha.toFixed(2)}`
+        ],
+        [
+            'CONTA DA CASA',
+            `R$ ${Number(resumo.CASA.total || 0).toFixed(2).replace('.', ',')}`,
+            `Func: ${resumo.CASA.Funcionário.toFixed(2)} | Pró-labore: ${resumo.CASA['Pró-labore'].toFixed(2)}`
+        ],
     ];
 
     autoTable(doc, {
         startY: bancoY + 5,
-        head: [['Origem', 'Total', 'Detalhamento']],
+        head: [['Origem', 'Total Líquido', 'Detalhamento (Vendas + Gorjetas)']],
         body: resumoData,
         theme: 'striped',
-        headStyles: { fillColor: [37, 99, 235] }
+        headStyles: { fillColor: [37, 99, 235] },
+        styles: { fontSize: 9 }
     });
 
-    // --- DETALHAMENTO DE VENDAS (Correção do Símbolo do PIX) ---
+    // --- 3. DETALHAMENTO DE VENDAS (INCLUINDO CAIXINHAS) ---
     const vendasY = (doc as any).lastAutoTable.finalY + 15;
     doc.setTextColor(71, 85, 105);
     doc.text('DETALHAMENTO DE VENDAS', 14, vendasY);
 
-    const vendasData = lote.lancamentos
+    const vendasData = (lote.lancamentos || [])
         .filter((l: any) => !l.isSaida)
         .map((l: any) => [
             `MESA ${l.mesa || '--'}`,
-            l.banco,
-            // Substituído o emoji por [C] para evitar símbolos estranhos
-            l.formaPagamento + (l.isCaixinha ? ' [C]' : ''),
-            `R$ ${l.valor.toFixed(2)}`
+            l.banco || 'Dinheiro',
+            l.formaPagamento + (Number(l.valorCaixinha) > 0 ? ' [+Gorgeta]' : ''),
+            `R$ ${Number(l.valor - (l.valorCaixinha || 0)).toFixed(2).replace('.', ',')}`,
+            `R$ ${Number(l.valorCaixinha || 0).toFixed(2).replace('.', ',')}`
         ]);
 
     autoTable(doc, {
         startY: vendasY + 5,
-        head: [['Mesa', 'Banco', 'Forma', 'Valor']],
+        head: [['Mesa', 'Banco/Origem', 'Forma', 'Venda Líquida', 'Caixinha']],
         body: vendasData,
-        headStyles: { fillColor: [71, 85, 105] }
+        headStyles: { fillColor: [71, 85, 105] },
+        styles: { fontSize: 8 },
+        columnStyles: { 3: { halign: 'right' }, 4: { halign: 'right' } }
     });
 
-    // --- SANGRIAS/SAÍDAS ---
-    if (lote.lancamentos.some((l: any) => l.isSaida)) {
+    // --- 4. SANGRIAS / SAÍDAS ---
+    const saídas = (lote.lancamentos || []).filter((l: any) => l.isSaida);
+
+    if (saídas.length > 0) {
         const sangriaY = (doc as any).lastAutoTable.finalY + 15;
         doc.setTextColor(220, 38, 38);
         doc.text('SANGRIAS / SAÍDAS', 14, sangriaY);
-        const sangriasData = lote.lancamentos
-            .filter((l: any) => l.isSaida)
-            .map((l: any) => [l.identificacao, `R$ -${l.valor.toFixed(2)}`]);
+
+        const sangriasData = saídas.map((l: any) => [
+            l.descricao || l.identificacao || 'Saída / Sangria',
+            `R$ ${Number(l.valor).toFixed(2).replace('.', ',')}`
+        ]);
 
         autoTable(doc, {
             startY: sangriaY + 5,
-            head: [['Descrição', 'Valor']],
+            head: [['Descrição da Saída', 'Valor Pago']],
             body: sangriasData,
-            headStyles: { fillColor: [220, 38, 38] }
+            headStyles: { fillColor: [220, 38, 38] },
+            styles: { fontSize: 9 },
+            columnStyles: { 1: { halign: 'right' } }
         });
     }
 
-    // --- RODAPÉ DE ASSINATURA ---
+    // --- RODAPÉ ---
     const bottomY = doc.internal.pageSize.height - 10;
     doc.setFontSize(8);
     doc.setTextColor(150);
-    doc.text(`Desenvolvido por Eureca Tech (Thomás Furtado) para Cliente Marujo`, 14, bottomY);
+    doc.text(`Desenvolvido por Eureca Tech para Marujo Conferência`, 14, bottomY);
 
     doc.save(`Marujo_${lote.periodo}_${dataFormatada}.pdf`);
 };

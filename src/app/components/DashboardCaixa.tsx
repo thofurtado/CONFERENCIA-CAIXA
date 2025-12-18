@@ -1,7 +1,9 @@
 "use client"
 import { useState } from 'react';
-import { Anchor, Plus, CheckCircle2, Clock, Trash2, ShieldCheck, Download, FileSpreadsheet, AlertCircle } from 'lucide-react';
+import { Anchor, Plus, Clock, Trash2, Download, FileSpreadsheet } from 'lucide-react';
 import { exportarParaCSV } from '../utils/exportCSV';
+// Importe suas funções de exportação aqui
+// import { exportarParaCSV } from './seu-arquivo';
 
 interface DashboardProps {
     lotes: any[];
@@ -15,37 +17,36 @@ export function DashboardCaixa({ lotes, onCriarNovo, onSelecionar, onApagar }: D
     const [novoPeriodo, setNovoPeriodo] = useState('Almoço');
     const [saldoAbertura, setSaldoAbertura] = useState('0.00');
 
-    const handleCriar = () => {
-        // REGRA DE OURO: Impedir duplicatas (Mesmo dia e mesmo período)
-        const existe = lotes.find(l => l.dataReferencia === novaData && l.periodo === novoPeriodo);
+    const formatarDataBR = (dataString: string) => {
+        const [ano, mes, dia] = dataString.split('-');
+        return `${dia}/${mes}/${ano}`;
+    };
 
+    const handleCriar = () => {
+        const existe = lotes.find(l => l.dataReferencia === novaData && l.periodo === novoPeriodo);
         if (existe) {
-            alert(`Atenção: Já existe um caixa de ${novoPeriodo} aberto para o dia ${new Date(novaData).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}. Não é possível duplicar.`);
+            alert(`Já existe um caixa de ${novoPeriodo} para este dia.`);
             return;
         }
-
         onCriarNovo(novaData, novoPeriodo, parseFloat(saldoAbertura) || 0);
-        setSaldoAbertura('0.00'); // Reseta após criar
+        setSaldoAbertura('0.00');
     };
 
     return (
         <div className="min-h-screen bg-zinc-50 p-4 md:p-6 text-zinc-900 flex flex-col">
             <div className="max-w-5xl mx-auto space-y-6 flex-1 w-full">
-                {/* Header idêntico ao anterior... */}
-                <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-                    <div className="flex items-center gap-4">
-                        <div className="bg-zinc-900 p-3 rounded-2xl text-white shadow-xl shadow-zinc-200">
-                            <Anchor size={32} />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-black uppercase tracking-tighter leading-none text-zinc-900">Marujo</h1>
-                            <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em]">Conferência</span>
-                        </div>
+                <header className="flex items-center gap-4 mb-8">
+                    <div className="bg-zinc-900 p-3 rounded-2xl text-white shadow-xl">
+                        <Anchor size={32} />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-black uppercase tracking-tighter leading-none">Marujo</h1>
+                        <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em]">Conferência</span>
                     </div>
                 </header>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    {/* FORMULÁRIO COM ABERTURA */}
+                    {/* Seção Criar Novo */}
                     <div className="lg:col-span-4 bg-white p-6 rounded-[2rem] border shadow-sm self-start">
                         <h2 className="text-[10px] font-black uppercase text-zinc-400 mb-6 flex items-center gap-2">
                             <Plus size={14} className="text-blue-600" /> Abrir Novo Caixa
@@ -63,46 +64,57 @@ export function DashboardCaixa({ lotes, onCriarNovo, onSelecionar, onApagar }: D
                                 </select>
                             </div>
                             <div>
-                                <label className="text-[9px] font-bold text-zinc-400 uppercase ml-2 mb-1 block text-green-600">Saldo Inicial em Dinheiro</label>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-400">R$</span>
-                                    <input
-                                        type="number"
-                                        value={saldoAbertura}
-                                        onChange={e => setSaldoAbertura(e.target.value)}
-                                        className="w-full border rounded-xl p-3 pl-8 font-mono font-bold bg-zinc-50 border-zinc-100 outline-none focus:ring-2 ring-green-100 text-green-700"
-                                    />
-                                </div>
+                                <label className="text-[9px] font-bold text-zinc-400 uppercase ml-2 mb-1 block text-green-600">Abertura em Dinheiro</label>
+                                <input type="number" value={saldoAbertura} onChange={e => setSaldoAbertura(e.target.value)} className="w-full border rounded-xl p-3 font-mono font-bold bg-zinc-50 border-zinc-100 outline-none text-green-700" />
                             </div>
-                            <button onClick={handleCriar} className="w-full bg-blue-600 text-white font-black uppercase text-[10px] py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">Iniciar Expediente</button>
+                            <button onClick={handleCriar} className="w-full bg-blue-600 text-white font-black uppercase text-[10px] py-4 rounded-xl shadow-lg hover:opacity-90 transition-opacity">Iniciar Expediente</button>
                         </div>
                     </div>
 
-                    {/* HISTÓRICO */}
+                    {/* Seção Histórico */}
                     <div className="lg:col-span-8 bg-white rounded-[2rem] border shadow-sm overflow-hidden flex flex-col">
                         <div className="bg-zinc-50/50 px-6 py-4 border-b flex justify-between items-center">
                             <span className="font-black text-[10px] text-zinc-400 uppercase tracking-widest">Histórico Recente</span>
-                            <button onClick={() => exportarParaCSV(lotes, "historico-total-marujo.csv")} className="flex items-center gap-2 bg-zinc-900 text-white px-3 py-1.5 rounded-lg font-black uppercase text-[9px] hover:bg-zinc-800 transition-all active:scale-95 shadow-sm">
-                                <FileSpreadsheet size={12} /> Exportar Tudo
+
+                            {/* BOTÃO EXPORTAR TODOS RECOLOCADO */}
+                            <button
+                                onClick={() => exportarParaCSV(lotes, "relatorio-geral.csv")}
+                                className="flex items-center gap-2 text-[10px] font-black text-blue-600 bg-white border border-blue-100 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
+                            >
+                                <FileSpreadsheet size={14} /> Exportar Todos
                             </button>
                         </div>
 
                         <div className="overflow-y-auto max-h-[500px] divide-y">
                             {lotes.map(l => (
-                                <div key={l.id} className="px-6 py-4 flex justify-between items-center hover:bg-zinc-50 cursor-pointer group transition-colors">
-                                    <div className="flex items-center gap-4 flex-1" onClick={() => onSelecionar(l.id)}>
-                                        {l.conferido ? <CheckCircle2 size={20} className="text-green-500" /> : <Clock size={20} className="text-amber-500" />}
+                                <div key={l.id} className="px-6 py-4 flex justify-between items-center hover:bg-zinc-50 transition-colors group">
+                                    <div className="flex items-center gap-4 cursor-pointer flex-1" onClick={() => onSelecionar(l.id)}>
+                                        <Clock size={20} className="text-amber-500" />
                                         <div>
-                                            <p className="font-black text-zinc-800 text-base">{new Date(l.dataReferencia).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</p>
-                                            <div className="flex gap-2 items-center">
+                                            <p className="font-black text-zinc-800 text-base">{formatarDataBR(l.dataReferencia)}</p>
+                                            <div className="flex gap-2">
                                                 <span className="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{l.periodo}</span>
-                                                <span className="text-[9px] font-bold text-zinc-400">Início: R$ {l.saldoAbertura?.toFixed(2)}</span>
+                                                <span className="text-[9px] font-bold text-zinc-400">Abertura: R$ {Number(l.valorAbertura).toFixed(2)}</span>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-1 md:gap-3">
-                                        <button onClick={(e) => { e.stopPropagation(); exportarParaCSV([l], `caixa-${l.dataReferencia}-${l.periodo}.csv`); }} className="text-zinc-300 hover:text-blue-600 p-2"><Download size={18} /></button>
-                                        <button onClick={(e) => { e.stopPropagation(); if (confirm('Apagar?')) onApagar(l.id); }} className="text-zinc-300 hover:text-red-500 p-2"><Trash2 size={18} /></button>
+
+                                    <div className="flex items-center gap-1">
+                                        {/* BOTÃO EXPORTAR ÚNICO (DETALHADO) */}
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); exportarParaCSV([l], `caixa-${l.dataReferencia}.csv`); }}
+                                            className="text-zinc-300 hover:text-green-600 p-2 transition-colors"
+                                            title="Exportar Detalhes"
+                                        >
+                                            <Download size={18} />
+                                        </button>
+
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); onApagar(l.id); }}
+                                            className="text-zinc-300 hover:text-red-500 p-2 transition-colors"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
                                     </div>
                                 </div>
                             ))}
@@ -110,7 +122,6 @@ export function DashboardCaixa({ lotes, onCriarNovo, onSelecionar, onApagar }: D
                     </div>
                 </div>
             </div>
-            {/* Footer... */}
         </div>
     );
 }
