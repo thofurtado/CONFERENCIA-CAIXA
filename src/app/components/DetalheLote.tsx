@@ -232,10 +232,8 @@ export function DetalheLote({ loteAtivo, resumoLote, onVoltar, onAdicionarLancam
                                                             <option value="PIX">PIX</option>
                                                             <option value="Débito">Débito</option>
                                                             <option value="Crédito">Crédito</option>
-                                                            <option value="Funcionário">Funcionário</option>
-                                                            <option value="Pró-labore">Pró-labore</option>
-                                                            <option value="Cortesia">Cortesia</option>
-                                                            <option value="Permuta">Permuta</option>
+                                                            <option value="Voucher">Voucher</option> {/* Adicionado aqui */}
+                                                            {/* ... outras opções da casa */}
                                                         </select>
                                                     </td>
                                                     <td className="p-2">

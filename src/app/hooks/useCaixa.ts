@@ -1,20 +1,101 @@
 "use client"
 import { useState, useEffect } from 'react';
 
+// Detecta se está em produção na Vercel
+const IS_PROD = process.env.NODE_ENV === 'production';
+const API_URL = '/api/caixa';
+const LOCAL_STORAGE_KEY = '@marujo-caixa';
+
 export function useCaixa() {
     const [lotes, setLotes] = useState<any[]>([]);
     const [loteAtivoId, setLoteAtivoId] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
 
+    // 1. CARREGAR DADOS (Híbrido)
     useEffect(() => {
-        const saved = localStorage.getItem('@marujo-caixa');
-        if (saved) setLotes(JSON.parse(saved));
+        async function loadData() {
+            setLoading(true);
+            try {
+                if (IS_PROD) {
+                    const response = await fetch(API_URL);
+                    const data = await response.json();
+                    if (Array.isArray(data)) setLotes(data);
+                } else {
+                    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+                    if (saved) setLotes(JSON.parse(saved));
+                }
+            } catch (err) {
+                console.error("Erro ao carregar dados:", err);
+            } finally {
+                setLoading(false);
+            }
+        }
+        loadData();
     }, []);
 
+    // 2. SALVAR DADOS (Sempre que o estado 'lotes' mudar)
     useEffect(() => {
-        localStorage.setItem('@marujo-caixa', JSON.stringify(lotes));
-    }, [lotes]);
+        if (loading) return; // Evita sobrescrever o banco com array vazio no primeiro render
+
+        if (IS_PROD) {
+            fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(lotes),
+            }).catch(err => console.error("Erro ao persistir na nuvem:", err));
+        } else {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(lotes));
+        }
+    }, [lotes, loading]);
 
     const loteAtivo = lotes.find(l => l.id === loteAtivoId);
+
+    // FUNÇÕES DE MANIPULAÇÃO
+    const criarNovoLote = (data: string, periodo: string, abertura: number) => {
+        // REGRA: Impedir duplicidade de período no mesmo dia
+        const jaExiste = lotes.find(l =>
+            l.dataReferencia === data &&
+            l.periodo.toLowerCase() === periodo.toLowerCase()
+        );
+
+        if (jaExiste) {
+            alert(`Já existe um registro de ${periodo} para o dia ${new Date(data).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}.`);
+            return;
+        }
+
+        const id = Date.now().toString();
+        const novo = {
+            id,
+            dataReferencia: data,
+            periodo,
+            valorAbertura: Number(abertura),
+            lancamentos: [],
+            status: 'aberto'
+        };
+        setLotes([...lotes, novo]);
+        setLoteAtivoId(id);
+    };
+
+    // ... Manter as outras funções (adicionarLancamento, removerLancamento, etc.) 
+    // exatamente como você já tinha, pois elas apenas atualizam o estado 'setLotes'.
+
+    const adicionarLancamento = (novo: any) => {
+        setLotes(lotes.map(l => (l.id === loteAtivoId ? { ...l, lancamentos: [...l.lancamentos, { ...novo, id: Date.now().toString() }] } : l)));
+    };
+
+    const removerLancamento = (id: string) => {
+        setLotes(lotes.map(l => (l.id === loteAtivoId ? { ...l, lancamentos: l.lancamentos.filter((lan: any) => lan.id !== id) } : l)));
+    };
+
+    const editarLancamento = (id: string, dadosAtualizados: any) => {
+        setLotes(lotes.map(l => (l.id === loteAtivoId ? { ...l, lancamentos: l.lancamentos.map((lan: any) => lan.id === id ? { ...lan, ...dadosAtualizados } : lan) } : l)));
+    };
+
+    const editarAbertura = (novoValor: number) => {
+        setLotes(lotes.map(l => (l.id === loteAtivoId ? { ...l, valorAbertura: novoValor } : l)));
+    };
+
+    const apagarLote = (id: string) => setLotes(lotes.filter(l => l.id !== id));
 
     const resumoLote = loteAtivo ? (() => {
         const lancamentos = loteAtivo.lancamentos || [];
@@ -27,9 +108,9 @@ export function useCaixa() {
             CASA: { total: 0 }
         };
 
-        // Inicializa bancos e formas da casa no objeto
+        // Inicializa incluindo o Voucher
         bancos.forEach(b => {
-            resumo[b] = { PIX: 0, Débito: 0, Crédito: 0, caixinha: 0, total: 0 };
+            resumo[b] = { PIX: 0, Débito: 0, Crédito: 0, Voucher: 0, caixinha: 0, total: 0 };
         });
         formasCasa.forEach(f => { resumo.CASA[f] = 0; });
 
@@ -41,14 +122,16 @@ export function useCaixa() {
             if (l.isSaida) {
                 resumo.CAIXA.totalSaidas += valor;
             } else {
-                // Soma Caixinha Geral
                 resumo.GERAL.totalCaixinha += caixinha;
 
                 if (l.formaPagamento === 'Dinheiro') {
                     resumo.CAIXA.entradasDinheiro += valorRealVenda;
                     resumo.GERAL.entradas += valorRealVenda;
                 } else if (bancos.includes(l.banco)) {
-                    resumo[l.banco][l.formaPagamento] += valorRealVenda;
+                    // Aqui a soma agora aceita Voucher dinamicamente
+                    if (resumo[l.banco][l.formaPagamento] !== undefined) {
+                        resumo[l.banco][l.formaPagamento] += valorRealVenda;
+                    }
                     resumo[l.banco].caixinha += caixinha;
                     resumo[l.banco].total += valorRealVenda;
                     resumo.GERAL.entradas += valorRealVenda;
@@ -63,62 +146,9 @@ export function useCaixa() {
         return resumo;
     })() : null;
 
-    const criarNovoLote = (data: string, periodo: string, abertura: number) => {
-        // Correção do Invalid Date: Garantir que a string de data esteja no formato correto
-        const id = Date.now().toString();
-        const novo = {
-            id,
-            dataReferencia: data, // Salva a string "YYYY-MM-DD" diretamente
-            periodo,
-            valorAbertura: Number(abertura),
-            lancamentos: [],
-            status: 'aberto'
-        };
-        setLotes([...lotes, novo]);
-        setLoteAtivoId(id);
-    };
-
-    const adicionarLancamento = (novo: any) => {
-        setLotes(lotes.map(l => (l.id === loteAtivoId ? { ...l, lancamentos: [...l.lancamentos, { ...novo, id: Date.now().toString() }] } : l)));
-    };
-
-    const removerLancamento = (id: string) => {
-        setLotes(lotes.map(l => (l.id === loteAtivoId ? { ...l, lancamentos: l.lancamentos.filter((lan: any) => lan.id !== id) } : l)));
-    };
-
-    const editarLancamento = (id: string, dadosAtualizados: any) => {
-        setLotes(lotes.map(l => (
-            l.id === loteAtivoId 
-                ? { 
-                    ...l, 
-                    lancamentos: l.lancamentos.map((lan: any) => 
-                        lan.id === id ? { ...lan, ...dadosAtualizados } : lan
-                    ) 
-                } 
-                : l
-        )));
-    };
-
-    const editarAbertura = (novoValor: number) => {
-        setLotes(lotes.map(l => (
-            l.id === loteAtivoId 
-                ? { ...l, valorAbertura: novoValor } 
-                : l
-        )));
-    };
-
-    const apagarLote = (id: string) => setLotes(lotes.filter(l => l.id !== id));
-
-    return { 
-        lotes, 
-        loteAtivo, 
-        setLoteAtivoId, 
-        criarNovoLote, 
-        adicionarLancamento, 
-        removerLancamento, 
-        editarLancamento,
-        editarAbertura,
-        apagarLote, 
-        resumoLote 
+    return {
+        lotes, loteAtivo, setLoteAtivoId, criarNovoLote, adicionarLancamento,
+        removerLancamento, editarLancamento, editarAbertura, apagarLote, resumoLote,
+        loading // Útil para mostrar um spinner se quiser
     };
 }

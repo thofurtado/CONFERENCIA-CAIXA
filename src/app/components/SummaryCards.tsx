@@ -1,5 +1,5 @@
 "use client"
-import { Banknote, Coffee, Building2, CreditCard, Smartphone, Landmark, Heart } from 'lucide-react';
+import { Banknote, Coffee, Building2, CreditCard, Smartphone, Landmark, Heart, Ticket } from 'lucide-react'; // Adicionei Ticket para o Voucher
 
 const BANCOS_DIGITAIS = ['SAFRA', 'PAGBANK', 'CIELO'] as const;
 const FORMAS_CASA = ['Funcionário', 'Pró-labore', 'Cortesia', 'Permuta'] as const;
@@ -10,7 +10,6 @@ export function SummaryCards({ resumo }: { resumo: any }) {
     return typeof value === 'number' ? value : 0;
   };
 
-  // Soma de todas as caixinhas recebidas (em todos os bancos + dinheiro)
   const totalCaixinha = safeGet(resumo, 'GERAL.totalCaixinha');
 
   const totalPorForma = (forma: string) => {
@@ -20,13 +19,11 @@ export function SummaryCards({ resumo }: { resumo: any }) {
   const abertura = safeGet(resumo, 'CAIXA.saldoAbertura');
   const entradasDinheiro = safeGet(resumo, 'CAIXA.entradasDinheiro');
   const saidasDinheiro = safeGet(resumo, 'CAIXA.totalSaidas');
-
-  // O saldo final do caixa físico considera Dinheiro Vivo (Vendas - Saídas + Abertura)
   const saldoFinalDinheiro = abertura + entradasDinheiro - saidasDinheiro;
 
   return (
     <div className="space-y-4">
-      {/* HEADER COMPACTO COM CAIXINHA */}
+      {/* HEADER COMPACTO COM CAIXINHA E VOUCHER */}
       <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 shadow-lg">
         <div className="flex flex-col md:flex-row items-center gap-4 justify-between">
 
@@ -37,7 +34,6 @@ export function SummaryCards({ resumo }: { resumo: any }) {
             </div>
             <div className="w-[1px] h-6 bg-zinc-800" />
 
-            {/* NOVO: CAMPO DE CAIXINHA NO RESUMO GERAL */}
             <div>
               <p className="text-[7px] font-black text-pink-500 uppercase tracking-tighter flex items-center gap-1">
                 <Heart size={8} fill="currentColor" /> Caixinhas
@@ -52,18 +48,24 @@ export function SummaryCards({ resumo }: { resumo: any }) {
             </div>
           </div>
 
-          <div className="flex gap-2 border-t md:border-t-0 md:border-l border-zinc-800 pt-3 md:pt-0 md:pl-6">
-            <div className="flex flex-col items-center px-3">
+          {/* GRID DE MÉTODOS ELETRÔNICOS (Agora com Voucher) */}
+          <div className="flex gap-1 border-t md:border-t-0 md:border-l border-zinc-800 pt-3 md:pt-0 md:pl-4">
+            <div className="flex flex-col items-center px-2">
               <span className="text-[7px] font-bold text-zinc-500 uppercase mb-1 flex items-center gap-1"><Smartphone size={8} /> Pix</span>
               <span className="text-[10px] font-mono font-bold text-blue-400">{(totalPorForma('PIX')).toFixed(2)}</span>
             </div>
-            <div className="flex flex-col items-center px-3">
+            <div className="flex flex-col items-center px-2">
               <span className="text-[7px] font-bold text-zinc-500 uppercase mb-1 flex items-center gap-1"><CreditCard size={8} /> Débito</span>
               <span className="text-[10px] font-mono font-bold text-zinc-300">{(totalPorForma('Débito')).toFixed(2)}</span>
             </div>
-            <div className="flex flex-col items-center px-3">
+            <div className="flex flex-col items-center px-2">
               <span className="text-[7px] font-bold text-zinc-500 uppercase mb-1 flex items-center gap-1"><CreditCard size={8} /> Crédito</span>
               <span className="text-[10px] font-mono font-bold text-zinc-300">{(totalPorForma('Crédito')).toFixed(2)}</span>
+            </div>
+            {/* NOVO: SOMATÓRIA GERAL DE VOUCHER */}
+            <div className="flex flex-col items-center px-2">
+              <span className="text-[7px] font-bold text-purple-400 uppercase mb-1 flex items-center gap-1"><Ticket size={8} /> Voucher</span>
+              <span className="text-[10px] font-mono font-bold text-purple-300">{(totalPorForma('Voucher')).toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -71,7 +73,7 @@ export function SummaryCards({ resumo }: { resumo: any }) {
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
 
-        {/* CAIXA FÍSICO (Abertura agora é enfatizada como editável no seu form) */}
+        {/* CAIXA FÍSICO */}
         <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 shadow-sm relative overflow-hidden">
           <Banknote size={32} className="absolute -right-2 -top-2 opacity-10 text-emerald-600 rotate-12" />
           <h2 className="font-black text-emerald-700 text-[9px] mb-3 flex items-center gap-2 uppercase tracking-tight">
@@ -90,7 +92,7 @@ export function SummaryCards({ resumo }: { resumo: any }) {
           </div>
         </div>
 
-        {/* BANCOS DETALHADOS */}
+        {/* BANCOS DETALHADOS (Agora com linha Voucher em cada banco) */}
         {BANCOS_DIGITAIS.map(banco => (
           <div key={banco} className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm">
             <h2 className="font-black text-zinc-400 text-[9px] mb-3 flex items-center gap-2 uppercase tracking-tight">
@@ -101,7 +103,9 @@ export function SummaryCards({ resumo }: { resumo: any }) {
               <div className="flex justify-between text-zinc-500"><span>Débito</span><span className="text-zinc-900 font-mono font-bold">{safeGet(resumo, `${banco}.Débito`).toFixed(2)}</span></div>
               <div className="flex justify-between text-zinc-500"><span>Crédito</span><span className="text-zinc-900 font-mono font-bold">{safeGet(resumo, `${banco}.Crédito`).toFixed(2)}</span></div>
 
-              {/* Opcional: Mostrar caixinha por banco se você tiver esse dado */}
+              {/* NOVO: LINHA VOUCHER POR BANCO */}
+              <div className="flex justify-between text-purple-600 font-medium"><span>Voucher</span><span className="font-mono font-bold">{safeGet(resumo, `${banco}.Voucher`).toFixed(2)}</span></div>
+
               {safeGet(resumo, `${banco}.caixinha`) > 0 && (
                 <div className="flex justify-between text-pink-500 font-bold italic"><span>Gorjeta</span><span>{safeGet(resumo, `${banco}.caixinha`).toFixed(2)}</span></div>
               )}

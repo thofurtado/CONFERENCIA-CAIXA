@@ -6,7 +6,7 @@ export function TransactionForm({ onAdd }: { onAdd: (dados: any) => void }) {
     const [tipo, setTipo] = useState<'entrada' | 'saida'>('entrada');
     const [valor, setValor] = useState('');
     const [valorCaixinha, setValorCaixinha] = useState('');
-    const [paraQuem, setParaQuem] = useState(''); // Novo estado
+    const [paraQuem, setParaQuem] = useState('');
     const [forma, setForma] = useState('Dinheiro');
     const [banco, setBanco] = useState('CAIXA');
     const [mesa, setMesa] = useState('');
@@ -14,7 +14,8 @@ export function TransactionForm({ onAdd }: { onAdd: (dados: any) => void }) {
     const [isCaixinha, setIsCaixinha] = useState(false);
 
     const formasContaCasa = ['Funcionário', 'Pró-labore', 'Cortesia', 'Permuta'];
-    const formasEletronicas = ['PIX', 'Débito', 'Crédito'];
+    // ADICIONADO: 'Voucher' agora faz parte das formas eletrônicas para liberar os bancos
+    const formasEletronicas = ['PIX', 'Débito', 'Crédito', 'Voucher'];
     const opcoesMesas = Array.from({ length: 200 }, (_, i) => i + 1);
 
     useEffect(() => {
@@ -22,6 +23,7 @@ export function TransactionForm({ onAdd }: { onAdd: (dados: any) => void }) {
             if (forma === 'Dinheiro') setBanco('CAIXA');
             else if (formasContaCasa.includes(forma)) setBanco('CONTA DA CASA');
             else if (formasEletronicas.includes(forma)) {
+                // Se mudar para Voucher/Pix/Cartão e estiver em bancos inválidos, reseta para SAFRA
                 if (banco === 'CAIXA' || banco === 'CONTA DA CASA') setBanco('SAFRA');
             }
         } else {
@@ -34,7 +36,7 @@ export function TransactionForm({ onAdd }: { onAdd: (dados: any) => void }) {
         if (!valor) return;
 
         onAdd({
-            valor: parseFloat(valor), // Mantém o valor total da venda conforme solicitado
+            valor: parseFloat(valor),
             valorCaixinha: isCaixinha ? parseFloat(valorCaixinha || '0') : 0,
             paraQuem: isCaixinha ? paraQuem : '',
             formaPagamento: tipo === 'saida' ? 'Sangria' : forma,
@@ -96,6 +98,7 @@ export function TransactionForm({ onAdd }: { onAdd: (dados: any) => void }) {
                                         <option value="PIX">PIX</option>
                                         <option value="Débito">Débito</option>
                                         <option value="Crédito">Crédito</option>
+                                        <option value="Voucher">Voucher</option> {/* ADICIONADO AQUI */}
                                         <option value="Funcionário">Funcionário</option>
                                         <option value="Pró-labore">Pró-labore</option>
                                         <option value="Cortesia">Cortesia</option>
@@ -104,10 +107,20 @@ export function TransactionForm({ onAdd }: { onAdd: (dados: any) => void }) {
                                 </div>
                                 <div className="col-span-2 md:w-40">
                                     <label className="text-[9px] font-black uppercase text-zinc-400 block mb-1 ml-1">Banco / Destino</label>
-                                    <select disabled={forma === 'Dinheiro' || formasContaCasa.includes(forma)} value={banco} onChange={e => setBanco(e.target.value)} className="w-full border border-zinc-200 rounded-xl p-4 md:p-3 text-base md:text-sm font-bold outline-none bg-zinc-50/50 disabled:opacity-60">
+                                    <select
+                                        disabled={forma === 'Dinheiro' || formasContaCasa.includes(forma)}
+                                        value={banco}
+                                        onChange={e => setBanco(e.target.value)}
+                                        className="w-full border border-zinc-200 rounded-xl p-4 md:p-3 text-base md:text-sm font-bold outline-none bg-zinc-50/50 disabled:opacity-60"
+                                    >
                                         {forma === 'Dinheiro' ? <option value="CAIXA">CAIXA</option> :
                                             formasContaCasa.includes(forma) ? <option value="CONTA DA CASA">CONTA DA CASA</option> :
-                                                <><option value="SAFRA">SAFRA</option><option value="PAGBANK">PAGBANK</option><option value="CIELO">CIELO</option></>}
+                                                <>
+                                                    <option value="SAFRA">SAFRA</option>
+                                                    <option value="PAGBANK">PAGBANK</option>
+                                                    <option value="CIELO">CIELO</option>
+                                                </>
+                                        }
                                     </select>
                                 </div>
                             </>
@@ -132,7 +145,6 @@ export function TransactionForm({ onAdd }: { onAdd: (dados: any) => void }) {
                     </div>
                 </div>
 
-                {/* CAMPO EXTRA: VALOR E PARA QUEM */}
                 {tipo === 'entrada' && isCaixinha && (
                     <div className="mt-4 pt-4 border-t border-dashed border-pink-100 grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in slide-in-from-top-2">
                         <div>
