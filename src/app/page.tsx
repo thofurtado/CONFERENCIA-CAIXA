@@ -12,6 +12,8 @@ export default function Home() {
     criarNovoLote,
     adicionarLancamento,
     removerLancamento,
+    editarLancamento,
+    editarAbertura,
     apagarLote,
     resumoLote
   } = useCaixa();
@@ -39,6 +41,8 @@ export default function Home() {
       onVoltar={() => setLoteAtivoId(null)}
       onAdicionarLancamento={adicionarLancamento}
       onRemoverLancamento={removerLancamento}
+      onEditarLancamento={editarLancamento}
+      onEditarAbertura={editarAbertura}
     />
   );
 }

@@ -86,7 +86,39 @@ export function useCaixa() {
         setLotes(lotes.map(l => (l.id === loteAtivoId ? { ...l, lancamentos: l.lancamentos.filter((lan: any) => lan.id !== id) } : l)));
     };
 
+    const editarLancamento = (id: string, dadosAtualizados: any) => {
+        setLotes(lotes.map(l => (
+            l.id === loteAtivoId 
+                ? { 
+                    ...l, 
+                    lancamentos: l.lancamentos.map((lan: any) => 
+                        lan.id === id ? { ...lan, ...dadosAtualizados } : lan
+                    ) 
+                } 
+                : l
+        )));
+    };
+
+    const editarAbertura = (novoValor: number) => {
+        setLotes(lotes.map(l => (
+            l.id === loteAtivoId 
+                ? { ...l, valorAbertura: novoValor } 
+                : l
+        )));
+    };
+
     const apagarLote = (id: string) => setLotes(lotes.filter(l => l.id !== id));
 
-    return { lotes, loteAtivo, setLoteAtivoId, criarNovoLote, adicionarLancamento, removerLancamento, apagarLote, resumoLote };
+    return { 
+        lotes, 
+        loteAtivo, 
+        setLoteAtivoId, 
+        criarNovoLote, 
+        adicionarLancamento, 
+        removerLancamento, 
+        editarLancamento,
+        editarAbertura,
+        apagarLote, 
+        resumoLote 
+    };
 }
