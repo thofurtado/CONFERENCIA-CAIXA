@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react';
 import { ArrowLeft, ShoppingBag, ArrowUpDown, Trash2, Wallet2, Printer } from 'lucide-react';
 import { SummaryCards } from './SummaryCards';
 import { TransactionForm } from './TransactionForm';
+import { CaixinhasTable } from './CaixinhasTable'; // Importação adicionada
 import { exportarLotePDF } from '../utils/exportPDF';
 
 interface DetalheLoteProps {
@@ -45,7 +46,6 @@ export function DetalheLote({ loteAtivo, resumoLote, onVoltar, onAdicionarLancam
 
     return (
         <div className="min-h-screen bg-zinc-50 p-3 md:p-8 space-y-4 md:space-y-6 text-zinc-900">
-            {/* Header Adaptativo */}
             <header className="max-w-[1400px] mx-auto flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 md:gap-4">
                     <button onClick={onVoltar} className="p-3 bg-white border rounded-xl shadow-sm text-zinc-400 active:bg-zinc-100">
@@ -69,7 +69,7 @@ export function DetalheLote({ loteAtivo, resumoLote, onVoltar, onAdicionarLancam
                 <SummaryCards resumo={resumoLote} />
                 <TransactionForm onAdd={onAdicionarLancamento} />
 
-                {/* Tabela de Vendas Mobile-Friendly */}
+                {/* Tabela de Vendas */}
                 <div className="space-y-2">
                     <div className="flex items-center gap-2 px-2 text-zinc-400 uppercase font-black text-[10px]">
                         <ShoppingBag size={14} /> Vendas ({entradasProcessadas.length})
@@ -79,31 +79,20 @@ export function DetalheLote({ loteAtivo, resumoLote, onVoltar, onAdicionarLancam
                             <table className="w-full text-left text-sm min-w-[600px]">
                                 <thead className="bg-zinc-50 border-b text-[9px] font-black text-zinc-400 uppercase">
                                     <tr>
-                                        <th className="p-4">
-                                            <button onClick={() => toggleSort('mesa')} className="flex items-center gap-1 mb-1">Mesa <ArrowUpDown size={10} /></button>
-                                            <input type="text" placeholder="Filtro" className="font-normal p-2 border rounded-lg w-16 uppercase text-[10px]" value={filtro.mesa} onChange={e => setFiltro({ ...filtro, mesa: e.target.value })} />
-                                        </th>
-                                        <th className="p-4">
-                                            <button onClick={() => toggleSort('banco')} className="flex items-center gap-1 mb-1">Banco <ArrowUpDown size={10} /></button>
-                                            <input type="text" placeholder="Filtro" className="font-normal p-2 border rounded-lg w-20 md:w-24 uppercase text-[10px]" value={filtro.banco} onChange={e => setFiltro({ ...filtro, banco: e.target.value })} />
-                                        </th>
-                                        <th className="p-4">
-                                            <button onClick={() => toggleSort('formaPagamento')} className="flex items-center gap-1 mb-1">Forma <ArrowUpDown size={10} /></button>
-                                            <input type="text" placeholder="Filtro" className="font-normal p-2 border rounded-lg w-20 md:w-24 uppercase text-[10px]" value={filtro.forma} onChange={e => setFiltro({ ...filtro, forma: e.target.value })} />
-                                        </th>
-                                        <th className="p-4 text-right">
-                                            <button onClick={() => toggleSort('valor')} className="flex items-center justify-end gap-1 w-full">Valor <ArrowUpDown size={10} /></button>
-                                        </th>
+                                        <th className="p-4">Mesa</th>
+                                        <th className="p-4">Banco</th>
+                                        <th className="p-4">Forma</th>
+                                        <th className="p-4 text-right">Valor</th>
                                         <th className="p-4 w-12"></th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y">
                                     {entradasProcessadas.map((l: any) => (
-                                        <tr key={l.id} className="hover:bg-zinc-50 active:bg-zinc-100 transition-colors">
+                                        <tr key={l.id} className="hover:bg-zinc-50 transition-colors">
                                             <td className="p-4 font-bold">MESA {l.mesa || '--'}</td>
                                             <td className="p-4 font-black text-[9px] text-zinc-400 uppercase">{l.banco}</td>
                                             <td className="p-4 font-bold text-zinc-500 uppercase text-[9px]">
-                                                {l.formaPagamento} {l.isCaixinha && "[C]"}
+                                                {l.formaPagamento} {l.valorCaixinha > 0 && <span className="text-pink-500 ml-1">♥</span>}
                                             </td>
                                             <td className="p-4 text-right font-mono font-black text-zinc-900">R$ {l.valor.toFixed(2)}</td>
                                             <td className="p-4 text-right">
@@ -114,14 +103,11 @@ export function DetalheLote({ loteAtivo, resumoLote, onVoltar, onAdicionarLancam
                                 </tbody>
                             </table>
                         </div>
-                        <div className="md:hidden p-3 bg-zinc-50 text-[8px] text-center text-zinc-400 font-bold uppercase border-t">
-                            ← Deslize lateralmente para ver mais →
-                        </div>
                     </div>
                 </div>
 
-                {/* Sangrias (Lista mais simples para mobile) */}
-                <div className="space-y-2 pb-10">
+                {/* Sangrias */}
+                <div className="space-y-2">
                     <div className="flex items-center gap-2 px-2 text-red-400 uppercase font-black text-[10px]">
                         <Wallet2 size={14} /> Sangrias
                     </div>
@@ -132,7 +118,7 @@ export function DetalheLote({ loteAtivo, resumoLote, onVoltar, onAdicionarLancam
                                     <tr><td className="p-8 text-center text-zinc-400 text-xs italic font-medium">Nenhuma sangria registrada</td></tr>
                                 ) : (
                                     sangrias.map((l: any) => (
-                                        <tr key={l.id} className="active:bg-red-100/50">
+                                        <tr key={l.id}>
                                             <td className="p-4 italic font-bold text-red-900 text-xs">{l.identificacao}</td>
                                             <td className="p-4 text-right font-mono font-black text-red-600">R$ -{l.valor.toFixed(2)}</td>
                                             <td className="p-4 w-12 text-right">
@@ -145,6 +131,10 @@ export function DetalheLote({ loteAtivo, resumoLote, onVoltar, onAdicionarLancam
                         </table>
                     </div>
                 </div>
+
+                {/* TABELA DE CAIXINHAS ABAIXO DAS SANGRIAS */}
+                <CaixinhasTable lancamentos={loteAtivo.lancamentos} />
+
             </div>
         </div>
     );
