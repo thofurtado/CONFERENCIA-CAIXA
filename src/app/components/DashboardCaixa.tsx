@@ -6,7 +6,7 @@ import { Anchor, Plus, Clock, Trash2, Download, FileSpreadsheet, FileText } from
 import { exportarRelatorioGeralPDF } from '../utils/exportGeralPDF';
 import { exportarGeralCSV } from '../utils/exportGeralCSV';
 
-// Importação da exportação INDIVIDUAL (ajuste o caminho se necessário)
+// Importação da exportação INDIVIDUAL
 import { exportarParaCSV } from '../utils/exportCSV';
 
 interface DashboardProps {
@@ -20,6 +20,20 @@ export function DashboardCaixa({ lotes, onCriarNovo, onSelecionar, onApagar }: D
     const [novaData, setNovaData] = useState(new Date().toISOString().split('T')[0]);
     const [novoPeriodo, setNovoPeriodo] = useState('Almoço');
     const [saldoAbertura, setSaldoAbertura] = useState('0.00');
+
+    // --- LÓGICA DE ORDENAÇÃO PARA A INTERFACE ---
+    // Ordena por data (mais recente primeiro) e período (Jantar antes de Almoço se mesma data)
+    const lotesOrdenadosParaExibicao = [...lotes].sort((a, b) => {
+        const dataA = new Date(a.dataReferencia).getTime();
+        const dataB = new Date(b.dataReferencia).getTime();
+
+        if (dataA !== dataB) {
+            return dataB - dataA; // Ordem decrescente de data
+        }
+
+        // Se for a mesma data, Jantar (mais recente no dia) aparece em cima de Almoço
+        return a.periodo === 'Jantar' ? -1 : 1;
+    });
 
     const formatarDataBR = (dataString: string) => {
         const [ano, mes, dia] = dataString.split('-');
@@ -80,7 +94,6 @@ export function DashboardCaixa({ lotes, onCriarNovo, onSelecionar, onApagar }: D
                         <div className="bg-zinc-50/50 px-6 py-4 border-b flex justify-between items-center">
                             <span className="font-black text-[10px] text-zinc-400 uppercase tracking-widest">Histórico Recente</span>
 
-                            {/* GRUPO DE BOTÕES DE EXPORTAÇÃO GERAL */}
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => exportarRelatorioGeralPDF(lotes)}
@@ -101,7 +114,8 @@ export function DashboardCaixa({ lotes, onCriarNovo, onSelecionar, onApagar }: D
                         </div>
 
                         <div className="overflow-y-auto max-h-[500px] divide-y">
-                            {lotes.map(l => (
+                            {/* USANDO A CONSTANTE ORDENADA AQUI */}
+                            {lotesOrdenadosParaExibicao.map(l => (
                                 <div key={l.id} className="px-6 py-4 flex justify-between items-center hover:bg-zinc-50 transition-colors group">
                                     <div className="flex items-center gap-4 cursor-pointer flex-1" onClick={() => onSelecionar(l.id)}>
                                         <Clock size={20} className="text-amber-500" />
@@ -115,7 +129,6 @@ export function DashboardCaixa({ lotes, onCriarNovo, onSelecionar, onApagar }: D
                                     </div>
 
                                     <div className="flex items-center gap-1">
-                                        {/* BOTÃO EXPORTAR ÚNICO (DADOS DO CAIXA ESPECÍFICO) */}
                                         <button
                                             onClick={(e) => { e.stopPropagation(); exportarParaCSV([l], `caixa-${l.dataReferencia}-${l.periodo}.csv`); }}
                                             className="text-zinc-300 hover:text-green-600 p-2 transition-colors"
