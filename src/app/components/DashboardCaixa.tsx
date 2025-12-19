@@ -1,9 +1,13 @@
 "use client"
 import { useState } from 'react';
-import { Anchor, Plus, Clock, Trash2, Download, FileSpreadsheet } from 'lucide-react';
+import { Anchor, Plus, Clock, Trash2, Download, FileSpreadsheet, FileText } from 'lucide-react';
+
+// Importações dos novos utilitários de exportação GERAL
+import { exportarRelatorioGeralPDF } from '../utils/exportGeralPDF';
+import { exportarGeralCSV } from '../utils/exportGeralCSV';
+
+// Importação da exportação INDIVIDUAL (ajuste o caminho se necessário)
 import { exportarParaCSV } from '../utils/exportCSV';
-// Importe suas funções de exportação aqui
-// import { exportarParaCSV } from './seu-arquivo';
 
 interface DashboardProps {
     lotes: any[];
@@ -76,13 +80,24 @@ export function DashboardCaixa({ lotes, onCriarNovo, onSelecionar, onApagar }: D
                         <div className="bg-zinc-50/50 px-6 py-4 border-b flex justify-between items-center">
                             <span className="font-black text-[10px] text-zinc-400 uppercase tracking-widest">Histórico Recente</span>
 
-                            {/* BOTÃO EXPORTAR TODOS RECOLOCADO */}
-                            <button
-                                onClick={() => exportarParaCSV(lotes, "relatorio-geral.csv")}
-                                className="flex items-center gap-2 text-[10px] font-black text-blue-600 bg-white border border-blue-100 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
-                            >
-                                <FileSpreadsheet size={14} /> Exportar Todos
-                            </button>
+                            {/* GRUPO DE BOTÕES DE EXPORTAÇÃO GERAL */}
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => exportarRelatorioGeralPDF(lotes)}
+                                    className="flex items-center gap-2 text-[10px] font-black text-red-600 bg-white border border-red-100 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                                    title="Relatório Financeiro em PDF"
+                                >
+                                    <FileText size={14} /> PDF
+                                </button>
+
+                                <button
+                                    onClick={() => exportarGeralCSV(lotes)}
+                                    className="flex items-center gap-2 text-[10px] font-black text-blue-600 bg-white border border-blue-100 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
+                                    title="Relatório Financeiro em Excel"
+                                >
+                                    <FileSpreadsheet size={14} /> Excel
+                                </button>
+                            </div>
                         </div>
 
                         <div className="overflow-y-auto max-h-[500px] divide-y">
@@ -100,11 +115,11 @@ export function DashboardCaixa({ lotes, onCriarNovo, onSelecionar, onApagar }: D
                                     </div>
 
                                     <div className="flex items-center gap-1">
-                                        {/* BOTÃO EXPORTAR ÚNICO (DETALHADO) */}
+                                        {/* BOTÃO EXPORTAR ÚNICO (DADOS DO CAIXA ESPECÍFICO) */}
                                         <button
-                                            onClick={(e) => { e.stopPropagation(); exportarParaCSV([l], `caixa-${l.dataReferencia}.csv`); }}
+                                            onClick={(e) => { e.stopPropagation(); exportarParaCSV([l], `caixa-${l.dataReferencia}-${l.periodo}.csv`); }}
                                             className="text-zinc-300 hover:text-green-600 p-2 transition-colors"
-                                            title="Exportar Detalhes"
+                                            title="Exportar Detalhes deste Caixa"
                                         >
                                             <Download size={18} />
                                         </button>
