@@ -1,58 +1,110 @@
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import autoTable, { RowInput } from 'jspdf-autotable';
 
 export const exportarRelatorioGeralPDF = (lotes: any[]) => {
+    // PDF em modo Paisagem (Landscape) para caber todas as colunas com folga
     const doc = new jsPDF('l', 'mm', 'a4');
 
-    // Ordenação: Data crescente e Período (Almoço vira primeiro que Jantar)
+    // Ordenação: Data decrescente (mais recente primeiro)
     const lotesOrdenados = [...lotes].sort((a, b) => {
         const dataA = new Date(a.dataReferencia).getTime();
         const dataB = new Date(b.dataReferencia).getTime();
-        if (dataA !== dataB) return dataA - dataB;
-        return a.periodo === 'Almoço' ? -1 : 1;
+        if (dataA !== dataB) return dataB - dataA;
+        return a.periodo === 'Jantar' ? -1 : 1;
     });
 
-    doc.setFillColor(30, 41, 59);
-    doc.rect(0, 0, 297, 20, 'F');
-    doc.setFontSize(12);
-    doc.setTextColor(255);
-    doc.text('MARUJO - RELATÓRIO FINANCEIRO CONSOLIDADO', 14, 13);
+    // --- ESTILIZAÇÃO DO CABEÇALHO ---
+    doc.setFillColor(15, 23, 42); // Azul Marinho Escuro (Zinc-900)
+    doc.rect(0, 0, 297, 25, 'F');
+    
+    doc.setFontSize(16);
+    doc.setTextColor(255, 255, 255);
+    doc.text('MARUJO - RELATÓRIO GERENCIAL CONSOLIDADO', 14, 12);
+    
+    doc.setFontSize(9);
+    doc.setTextColor(148, 163, 184); // Cinza azulado
+    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 14, 18);
 
-    const body = lotesOrdenados.map(l => {
+    // --- MAPEAMENTO DOS DADOS COM CORES ---
+    const body: RowInput[] = lotesOrdenados.map(l => {
         const lanc = l.lancamentos || [];
         const abertura = Number(l.valorAbertura || 0);
+        
+        // Dinheiro que entrou (vendas - gorjetas em dinheiro)
         const entDin = lanc.filter((i: any) => !i.isSaida && i.formaPagamento === 'Dinheiro')
             .reduce((acc: number, i: any) => acc + (i.valor - (i.valorCaixinha || 0)), 0);
+        
         const sai = lanc.filter((i: any) => i.isSaida).reduce((acc: number, i: any) => acc + i.valor, 0);
-        const getSum = (forma: string) => lanc.filter((i: any) => !i.isSaida && i.formaPagamento === forma).reduce((acc: number, i: any) => acc + i.valor, 0);
-        const consumo = lanc.filter((i: any) => !i.isSaida && ['Funcionário', 'Cortesia', 'Pró-labore'].includes(i.formaPagamento)).reduce((acc: number, i: any) => acc + i.valor, 0);
+        
+        const getSum = (forma: string) => lanc.filter((i: any) => !i.isSaida && i.formaPagamento === forma)
+            .reduce((acc: number, i: any) => acc + i.valor, 0);
+
+        const consumo = lanc.filter((i: any) => !i.isSaida && ['Funcionário', 'Cortesia', 'Pró-labore'].includes(i.formaPagamento))
+            .reduce((acc: number, i: any) => acc + i.valor, 0);
+
         const totalVendas = lanc.filter((i: any) => !i.isSaida).reduce((acc: number, i: any) => acc + i.valor, 0);
+        
+        const saldoGaveta = abertura + entDin - sai;
 
         return [
             l.dataReferencia.split('-').reverse().join('/'),
-            l.periodo,
-            abertura.toFixed(2),
-            entDin.toFixed(2),
-            sai.toFixed(2),
-            (abertura + entDin - sai).toFixed(2),
-            getSum('PIX').toFixed(2),
-            getSum('Débito').toFixed(2),
-            getSum('Crédito').toFixed(2),
-            getSum('Voucher').toFixed(2),
-            consumo.toFixed(2),
-            totalVendas.toFixed(2),
-            (totalVendas + abertura - sai).toFixed(2)
+            { content: l.periodo.toUpperCase(), styles: { fontStyle: 'bold' as const } },
+            abertura.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+            entDin.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+            { content: sai.toLocaleString('pt-BR', { minimumFractionDigits: 2 }), styles: { textColor: [185, 28, 28] as any } }, // Vermelho para saídas
+            { content: saldoGaveta.toLocaleString('pt-BR', { minimumFractionDigits: 2 }), styles: { fontStyle: 'bold' as const, textColor: [21, 128, 61] as any } }, // Verde para saldo físico
+            getSum('PIX').toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+            getSum('Débito').toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+            getSum('Crédito').toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+            getSum('Voucher').toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+            consumo.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+            { content: totalVendas.toLocaleString('pt-BR', { minimumFractionDigits: 2 }), styles: { fontStyle: 'bold' as const, fillColor: [241, 245, 249] as any } }
         ];
     });
 
     autoTable(doc, {
-        startY: 25,
-        head: [['Data', 'Período', 'Abertura', 'Ent. Din', 'Saídas', 'Sald. Din', 'PIX', 'Débito', 'Crédito', 'Voucher', 'Consumo', 'Total Vendas', 'Saldo Final']],
+        startY: 30,
+        head: [[
+            'DATA', 
+            'TURNO', 
+            'ABERTURA', 
+            'DIN. VENDAS', 
+            'SANGRIAS', 
+            'SALDO GAVETA', 
+            'PIX', 
+            'DÉBITO', 
+            'CRÉDITO', 
+            'VOUCHER', 
+            'CONSUMO', 
+            'FATURAMENTO TOTAL'
+        ]],
         body: body,
-        theme: 'grid',
-        styles: { fontSize: 7, halign: 'center' },
-        headStyles: { fillColor: [30, 41, 59] },
+        theme: 'striped',
+        styles: { 
+            fontSize: 7.5, 
+            halign: 'center',
+            cellPadding: 3,
+            lineColor: [226, 232, 240],
+            lineWidth: 0.1,
+        },
+        headStyles: { 
+            fillColor: [30, 41, 59], 
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 8
+        },
+        columnStyles: {
+            0: { halign: 'left', fontStyle: 'bold' },
+            5: { fillColor: [240, 253, 244] }, // Fundo levemente esverdeado para o Saldo em Mão
+            11: { fillColor: [239, 246, 255] } // Fundo levemente azulado para o Faturamento Total
+        }
     });
 
-    doc.save(`Relatorio_Marujo_Geral.pdf`);
+    // Nota explicativa no rodapé
+    const finalY = (doc as any).lastAutoTable.finalY || 30;
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text('Legenda: SALDO GAVETA = (Abertura + Dinheiro Vendas - Sangrias). FATURAMENTO TOTAL = Soma de todas as formas de pagamento (exceto sangrias).', 14, finalY + 10);
+
+    doc.save(`MARUJO_GERENCIAL_${new Date().getTime()}.pdf`);
 };
