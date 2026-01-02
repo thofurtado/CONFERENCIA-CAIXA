@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useCaixa } from './hooks/useCaixa';
 import { DashboardCaixa } from './components/DashboardCaixa';
 import { DetalheLote } from './components/DetalheLote';
+import { StatusCaixa } from './types/caixa'; // Importe o tipo se necessário
 
 export default function Home() {
   const {
@@ -15,7 +16,8 @@ export default function Home() {
     editarLancamento,
     editarAbertura,
     apagarLote,
-    resumoLote
+    resumoLote,
+    alterarStatus
   } = useCaixa();
 
   // Atualiza o título da aba no navegador
@@ -23,6 +25,7 @@ export default function Home() {
     document.title = "Marujo | Eureca Tech";
   }, []);
 
+  // Se não houver lote selecionado, mostra o Dashboard
   if (!loteAtivo) {
     return (
       <DashboardCaixa
@@ -34,6 +37,7 @@ export default function Home() {
     );
   }
 
+  // Se houver um lote ativo, mostra os detalhes dele
   return (
     <DetalheLote
       loteAtivo={loteAtivo}
@@ -43,6 +47,7 @@ export default function Home() {
       onRemoverLancamento={removerLancamento}
       onEditarLancamento={editarLancamento}
       onEditarAbertura={editarAbertura}
+      onAlterarStatus={(status) => alterarStatus(loteAtivo.id, status)}
     />
   );
 }

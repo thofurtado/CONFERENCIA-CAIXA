@@ -35,7 +35,7 @@ export function useCaixa() {
 
     // 2. SALVAR DADOS (Sempre que o estado 'lotes' mudar)
     useEffect(() => {
-        if (loading) return; // Evita sobrescrever o banco com array vazio no primeiro render
+        if (loading) return;
 
         if (IS_PROD) {
             fetch(API_URL, {
@@ -70,14 +70,11 @@ export function useCaixa() {
             periodo,
             valorAbertura: Number(abertura),
             lancamentos: [],
-            status: 'aberto'
+            status: 'pendente' // Inicia como pendente por padrão
         };
         setLotes([...lotes, novo]);
         setLoteAtivoId(id);
     };
-
-    // ... Manter as outras funções (adicionarLancamento, removerLancamento, etc.) 
-    // exatamente como você já tinha, pois elas apenas atualizam o estado 'setLotes'.
 
     const adicionarLancamento = (novo: any) => {
         setLotes(lotes.map(l => (l.id === loteAtivoId ? { ...l, lancamentos: [...l.lancamentos, { ...novo, id: Date.now().toString() }] } : l)));
@@ -95,6 +92,11 @@ export function useCaixa() {
         setLotes(lotes.map(l => (l.id === loteAtivoId ? { ...l, valorAbertura: novoValor } : l)));
     };
 
+    // NOVA FUNÇÃO: Alterar Status (Conferido, Alerta, Pendente)
+    const alterarStatus = (id: string, novoStatus: string) => {
+        setLotes(lotes.map(l => (l.id === id ? { ...l, status: novoStatus } : l)));
+    };
+
     const apagarLote = (id: string) => setLotes(lotes.filter(l => l.id !== id));
 
     const resumoLote = loteAtivo ? (() => {
@@ -108,7 +110,6 @@ export function useCaixa() {
             CASA: { total: 0 }
         };
 
-        // Inicializa incluindo o Voucher
         bancos.forEach(b => {
             resumo[b] = { PIX: 0, Débito: 0, Crédito: 0, Voucher: 0, caixinha: 0, total: 0 };
         });
@@ -128,7 +129,6 @@ export function useCaixa() {
                     resumo.CAIXA.entradasDinheiro += valorRealVenda;
                     resumo.GERAL.entradas += valorRealVenda;
                 } else if (bancos.includes(l.banco)) {
-                    // Aqui a soma agora aceita Voucher dinamicamente
                     if (resumo[l.banco][l.formaPagamento] !== undefined) {
                         resumo[l.banco][l.formaPagamento] += valorRealVenda;
                     }
@@ -147,8 +147,17 @@ export function useCaixa() {
     })() : null;
 
     return {
-        lotes, loteAtivo, setLoteAtivoId, criarNovoLote, adicionarLancamento,
-        removerLancamento, editarLancamento, editarAbertura, apagarLote, resumoLote,
-        loading // Útil para mostrar um spinner se quiser
+        lotes,
+        loteAtivo,
+        setLoteAtivoId,
+        criarNovoLote,
+        adicionarLancamento,
+        removerLancamento,
+        editarLancamento,
+        editarAbertura,
+        alterarStatus, // Exportada para a Page usar
+        apagarLote,
+        resumoLote,
+        loading
     };
 }

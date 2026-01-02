@@ -1,12 +1,8 @@
 "use client"
 import { useState } from 'react';
-import { Anchor, Plus, Clock, Trash2, Download, FileSpreadsheet, FileText } from 'lucide-react';
-
-// Importações dos novos utilitários de exportação GERAL
+import { Anchor, Plus, Clock, Trash2, Download, FileSpreadsheet, FileText, ChevronLeft, ChevronRight, CheckCircle2, AlertCircle } from 'lucide-react';
 import { exportarRelatorioGeralPDF } from '../utils/exportGeralPDF';
 import { exportarGeralCSV } from '../utils/exportGeralCSV';
-
-// Importação da exportação INDIVIDUAL
 import { exportarParaCSV } from '../utils/exportCSV';
 
 interface DashboardProps {
@@ -17,23 +13,36 @@ interface DashboardProps {
 }
 
 export function DashboardCaixa({ lotes, onCriarNovo, onSelecionar, onApagar }: DashboardProps) {
-    const [novaData, setNovaData] = useState(new Date().toISOString().split('T')[0]);
+    const dataAtual = new Date();
+    const [novaData, setNovaData] = useState(dataAtual.toISOString().split('T')[0]);
     const [novoPeriodo, setNovoPeriodo] = useState('Almoço');
     const [saldoAbertura, setSaldoAbertura] = useState('0.00');
 
-    // --- LÓGICA DE ORDENAÇÃO PARA A INTERFACE ---
-    // Ordena por data (mais recente primeiro) e período (Jantar antes de Almoço se mesma data)
-    const lotesOrdenadosParaExibicao = [...lotes].sort((a, b) => {
-        const dataA = new Date(a.dataReferencia).getTime();
-        const dataB = new Date(b.dataReferencia).getTime();
+    const [mesVisualizacao, setMesVisualizacao] = useState(dataAtual.getMonth());
+    const [anoVisualizacao, setAnoVisualizacao] = useState(dataAtual.getFullYear());
 
-        if (dataA !== dataB) {
-            return dataB - dataA; // Ordem decrescente de data
-        }
+    const nomesMeses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
-        // Se for a mesma data, Jantar (mais recente no dia) aparece em cima de Almoço
-        return a.periodo === 'Jantar' ? -1 : 1;
-    });
+    const navegarMes = (direcao: number) => {
+        let novoMes = mesVisualizacao + direcao;
+        let novoAno = anoVisualizacao;
+        if (novoMes < 0) { novoMes = 11; novoAno--; }
+        else if (novoMes > 11) { novoMes = 0; novoAno++; }
+        setMesVisualizacao(novoMes);
+        setAnoVisualizacao(novoAno);
+    };
+
+    const lotesFiltradosEOrdenados = lotes
+        .filter(l => {
+            const dataLote = new Date(l.dataReferencia + 'T00:00:00');
+            return dataLote.getMonth() === mesVisualizacao && dataLote.getFullYear() === anoVisualizacao;
+        })
+        .sort((a, b) => {
+            const dataA = new Date(a.dataReferencia).getTime();
+            const dataB = new Date(b.dataReferencia).getTime();
+            if (dataA !== dataB) return dataB - dataA;
+            return a.periodo === 'Jantar' ? -1 : 1;
+        });
 
     const formatarDataBR = (dataString: string) => {
         const [ano, mes, dia] = dataString.split('-');
@@ -50,6 +59,15 @@ export function DashboardCaixa({ lotes, onCriarNovo, onSelecionar, onApagar }: D
         setSaldoAbertura('0.00');
     };
 
+    // Função para renderizar o ícone de status na lista
+    const renderStatusIcon = (status: string) => {
+        switch (status) {
+            case 'conferido': return <CheckCircle2 size={18} className="text-green-500" />;
+            case 'alerta': return <AlertCircle size={18} className="text-amber-500" />;
+            default: return <Clock size={18} className="text-zinc-300" />;
+        }
+    };
+
     return (
         <div className="min-h-screen bg-zinc-50 p-4 md:p-6 text-zinc-900 flex flex-col">
             <div className="max-w-5xl mx-auto space-y-6 flex-1 w-full">
@@ -64,7 +82,6 @@ export function DashboardCaixa({ lotes, onCriarNovo, onSelecionar, onApagar }: D
                 </header>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    {/* Seção Criar Novo */}
                     <div className="lg:col-span-4 bg-white p-6 rounded-[2rem] border shadow-sm self-start">
                         <h2 className="text-[10px] font-black uppercase text-zinc-400 mb-6 flex items-center gap-2">
                             <Plus size={14} className="text-blue-600" /> Abrir Novo Caixa
@@ -89,63 +106,55 @@ export function DashboardCaixa({ lotes, onCriarNovo, onSelecionar, onApagar }: D
                         </div>
                     </div>
 
-                    {/* Seção Histórico */}
                     <div className="lg:col-span-8 bg-white rounded-[2rem] border shadow-sm overflow-hidden flex flex-col">
-                        <div className="bg-zinc-50/50 px-6 py-4 border-b flex justify-between items-center">
-                            <span className="font-black text-[10px] text-zinc-400 uppercase tracking-widest">Histórico Recente</span>
+                        <div className="bg-zinc-50/50 px-6 py-4 border-b space-y-4">
+                            <div className="flex justify-between items-center">
+                                <span className="font-black text-[10px] text-zinc-400 uppercase tracking-widest">Caixas do Mês</span>
+                                <div className="flex gap-2">
+                                    <button onClick={() => exportarRelatorioGeralPDF(lotesFiltradosEOrdenados)} className="flex items-center gap-2 text-[10px] font-black text-red-600 bg-white border border-red-100 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">
+                                        <FileText size={14} /> PDF
+                                    </button>
+                                    <button onClick={() => exportarGeralCSV(lotesFiltradosEOrdenados)} className="flex items-center gap-2 text-[10px] font-black text-blue-600 bg-white border border-blue-100 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors">
+                                        <FileSpreadsheet size={14} /> Excel
+                                    </button>
+                                </div>
+                            </div>
 
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => exportarRelatorioGeralPDF(lotes)}
-                                    className="flex items-center gap-2 text-[10px] font-black text-red-600 bg-white border border-red-100 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
-                                    title="Relatório Financeiro em PDF"
-                                >
-                                    <FileText size={14} /> PDF
-                                </button>
-
-                                <button
-                                    onClick={() => exportarGeralCSV(lotes)}
-                                    className="flex items-center gap-2 text-[10px] font-black text-blue-600 bg-white border border-blue-100 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
-                                    title="Relatório Financeiro em Excel"
-                                >
-                                    <FileSpreadsheet size={14} /> Excel
-                                </button>
+                            <div className="flex items-center justify-between bg-white border rounded-xl p-2 shadow-sm">
+                                <button onClick={() => navegarMes(-1)} className="p-1 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-400 hover:text-zinc-900"><ChevronLeft size={20} /></button>
+                                <div className="text-center">
+                                    <span className="text-[10px] font-black uppercase text-zinc-900">{nomesMeses[mesVisualizacao]} <span className="text-blue-600">{anoVisualizacao}</span></span>
+                                </div>
+                                <button onClick={() => navegarMes(1)} className="p-1 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-400 hover:text-zinc-900"><ChevronRight size={20} /></button>
                             </div>
                         </div>
 
-                        <div className="overflow-y-auto max-h-[500px] divide-y">
-                            {/* USANDO A CONSTANTE ORDENADA AQUI */}
-                            {lotesOrdenadosParaExibicao.map(l => (
-                                <div key={l.id} className="px-6 py-4 flex justify-between items-center hover:bg-zinc-50 transition-colors group">
-                                    <div className="flex items-center gap-4 cursor-pointer flex-1" onClick={() => onSelecionar(l.id)}>
-                                        <Clock size={20} className="text-amber-500" />
-                                        <div>
-                                            <p className="font-black text-zinc-800 text-base">{formatarDataBR(l.dataReferencia)}</p>
-                                            <div className="flex gap-2">
-                                                <span className="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{l.periodo}</span>
-                                                <span className="text-[9px] font-bold text-zinc-400">Abertura: R$ {Number(l.valorAbertura).toFixed(2)}</span>
+                        <div className="overflow-y-auto max-h-[500px] divide-y min-h-[200px]">
+                            {lotesFiltradosEOrdenados.length > 0 ? (
+                                lotesFiltradosEOrdenados.map(l => (
+                                    <div key={l.id} className="px-6 py-4 flex justify-between items-center hover:bg-zinc-50 transition-colors group">
+                                        <div className="flex items-center gap-4 cursor-pointer flex-1" onClick={() => onSelecionar(l.id)}>
+                                            {renderStatusIcon(l.status)}
+                                            <div>
+                                                <p className="font-black text-zinc-800 text-base">{formatarDataBR(l.dataReferencia)}</p>
+                                                <div className="flex gap-2">
+                                                    <span className="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{l.periodo}</span>
+                                                    <span className="text-[9px] font-bold text-zinc-400">Abertura: R$ {Number(l.valorAbertura).toFixed(2)}</span>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    <div className="flex items-center gap-1">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); exportarParaCSV([l], `caixa-${l.dataReferencia}-${l.periodo}.csv`); }}
-                                            className="text-zinc-300 hover:text-green-600 p-2 transition-colors"
-                                            title="Exportar Detalhes deste Caixa"
-                                        >
-                                            <Download size={18} />
-                                        </button>
-
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); onApagar(l.id); }}
-                                            className="text-zinc-300 hover:text-red-500 p-2 transition-colors"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
+                                        <div className="flex items-center gap-1">
+                                            <button onClick={(e) => { e.stopPropagation(); exportarParaCSV([l], `caixa-${l.dataReferencia}-${l.periodo}.csv`); }} className="text-zinc-300 hover:text-green-600 p-2 transition-colors"><Download size={18} /></button>
+                                            <button onClick={(e) => { e.stopPropagation(); onApagar(l.id); }} className="text-zinc-300 hover:text-red-500 p-2 transition-colors"><Trash2 size={18} /></button>
+                                        </div>
                                     </div>
+                                ))
+                            ) : (
+                                <div className="p-12 text-center">
+                                    <p className="text-[10px] font-black uppercase text-zinc-300 tracking-widest">Nenhum caixa neste período</p>
                                 </div>
-                            ))}
+                            )}
                         </div>
                     </div>
                 </div>

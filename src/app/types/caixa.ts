@@ -5,14 +5,19 @@ export interface Lancamento {
     formaPagamento: string;
     valor: number;
     isCaixinha: boolean;
-    isSaida?: boolean; 
+    isSaida?: boolean;
+    identificacao?: string; // Adicionado para sangrias
     data: string;
 }
 
+export type StatusCaixa = 'pendente' | 'alerta' | 'conferido';
+
 export interface LoteConferencia {
     id: string;
-    dataReferencia: string; // Ex: 2023-10-25
-    periodo: string; // Ex: Almoço, Jantar, Turno 1
+    dataReferencia: string;
+    periodo: string;
+    valorAbertura: number; // Garanta que este campo existe
+    status: StatusCaixa;   // ADICIONE ESTA LINHA
     lancamentos: Lancamento[];
 }
 

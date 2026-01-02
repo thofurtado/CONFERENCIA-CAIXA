@@ -1,16 +1,17 @@
 "use client"
 import { useState, useEffect, useRef } from 'react';
-import { Plus, ArrowLeft, TrendingDown, Heart, User, CheckCircle2 } from 'lucide-react';
+import { Plus, ArrowLeft, TrendingDown, Heart, User, CheckCircle2, UserCircle } from 'lucide-react';
 
 export function TransactionForm({ onAdd }: { onAdd: (dados: any) => void }) {
     const [tipo, setTipo] = useState<'entrada' | 'saida'>('entrada');
-    const [valor, setValor] = useState(''); // Armazena o valor formatado (ex: "0,00")
+    const [valor, setValor] = useState('');
     const [valorCaixinha, setValorCaixinha] = useState('');
     const [paraQuem, setParaQuem] = useState('');
     const [forma, setForma] = useState('Dinheiro');
     const [banco, setBanco] = useState('CAIXA');
     const [mesa, setMesa] = useState('');
     const [identificacao, setIdentificacao] = useState('');
+    const [consumidorCasa, setConsumidorCasa] = useState('');
     const [isCaixinha, setIsCaixinha] = useState(false);
 
     const [showTooltip, setShowTooltip] = useState(false);
@@ -18,12 +19,10 @@ export function TransactionForm({ onAdd }: { onAdd: (dados: any) => void }) {
 
     const formasContaCasa = ['Funcionário', 'Pró-labore', 'Cortesia', 'Permuta'];
     const formasEletronicas = ['PIX', 'Débito', 'Crédito', 'Voucher'];
+    const isContaCasa = formasContaCasa.includes(forma) && tipo === 'entrada';
 
-    // Função para formatar o número enquanto digita
     const formatCurrency = (value: string) => {
-        // Remove tudo que não é número
         const digits = value.replace(/\D/g, '');
-        // Converte para centavos e formata
         const amount = Number(digits) / 100;
         return amount.toLocaleString('pt-BR', {
             minimumFractionDigits: 2,
@@ -31,7 +30,6 @@ export function TransactionForm({ onAdd }: { onAdd: (dados: any) => void }) {
         });
     };
 
-    // Função auxiliar para converter string "1.250,50" em float 1250.50
     const parseCurrencyToFloat = (value: string) => {
         return parseFloat(value.replace(/\./g, '').replace(',', '.')) || 0;
     };
@@ -61,6 +59,7 @@ export function TransactionForm({ onAdd }: { onAdd: (dados: any) => void }) {
             banco: banco,
             mesa: tipo === 'saida' ? '' : mesa,
             identificacao: tipo === 'saida' ? identificacao : '',
+            consumidorCasa: isContaCasa ? consumidorCasa : '',
             isCaixinha: tipo === 'saida' ? false : isCaixinha,
             isSaida: tipo === 'saida'
         });
@@ -70,6 +69,7 @@ export function TransactionForm({ onAdd }: { onAdd: (dados: any) => void }) {
         setParaQuem('');
         setMesa('');
         setIdentificacao('');
+        setConsumidorCasa('');
         setIsCaixinha(false);
 
         setShowTooltip(true);
@@ -99,7 +99,7 @@ export function TransactionForm({ onAdd }: { onAdd: (dados: any) => void }) {
 
                 {showTooltip && (
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase flex items-center gap-2 shadow-xl animate-in zoom-in duration-300 z-50">
-                        <CheckCircle2 size={12} /> Lançamento Realizado!
+                        <span className="flex items-center gap-2 whitespace-nowrap"><CheckCircle2 size={12} /> Lançamento Realizado!</span>
                     </div>
                 )}
 
@@ -109,8 +109,8 @@ export function TransactionForm({ onAdd }: { onAdd: (dados: any) => void }) {
                             <label className="text-[9px] font-black uppercase text-zinc-400 block mb-1 ml-1">Valor Total</label>
                             <input
                                 ref={valorInputRef}
-                                type="text" // Mudado para text para suportar a máscara
-                                inputMode="numeric" // Garante teclado numérico no celular
+                                type="text"
+                                inputMode="numeric"
                                 required
                                 value={valor}
                                 onChange={e => setValor(formatCurrency(e.target.value))}
@@ -131,7 +131,6 @@ export function TransactionForm({ onAdd }: { onAdd: (dados: any) => void }) {
                                         className="w-full border border-zinc-200 rounded-xl p-4 md:p-3 text-base md:text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50/50"
                                     />
                                 </div>
-                                {/* ... Restante do formulário permanece igual ... */}
                                 <div className="col-span-2 md:w-44">
                                     <label className="text-[9px] font-black uppercase text-zinc-400 block mb-1 ml-1">Forma de Pagamento</label>
                                     <select value={forma} onChange={e => setForma(e.target.value)} className="w-full border border-zinc-200 rounded-xl p-4 md:p-3 text-base md:text-sm font-bold outline-none bg-zinc-50/50">
@@ -146,24 +145,42 @@ export function TransactionForm({ onAdd }: { onAdd: (dados: any) => void }) {
                                         <option value="Permuta">Permuta</option>
                                     </select>
                                 </div>
-                                <div className="col-span-2 md:w-40">
-                                    <label className="text-[9px] font-black uppercase text-zinc-400 block mb-1 ml-1">Banco / Destino</label>
-                                    <select
-                                        disabled={forma === 'Dinheiro' || formasContaCasa.includes(forma)}
-                                        value={banco}
-                                        onChange={e => setBanco(e.target.value)}
-                                        className="w-full border border-zinc-200 rounded-xl p-4 md:p-3 text-base md:text-sm font-bold outline-none bg-zinc-50/50 disabled:opacity-60"
-                                    >
-                                        {forma === 'Dinheiro' ? <option value="CAIXA">CAIXA</option> :
-                                            formasContaCasa.includes(forma) ? <option value="CONTA DA CASA">CONTA DA CASA</option> :
+
+                                {isContaCasa && (
+                                    <div className="col-span-2 md:flex-1 animate-in slide-in-from-left-2">
+                                        <label className="text-[9px] font-black uppercase text-orange-500 block mb-1 ml-1 flex items-center gap-1">
+                                            <UserCircle size={10} /> Nome do Consumidor
+                                        </label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={consumidorCasa}
+                                            onChange={e => setConsumidorCasa(e.target.value)}
+                                            placeholder="Quem consumiu?"
+                                            className="w-full border-2 border-orange-200 rounded-xl p-4 md:p-3 text-base md:text-sm font-bold outline-none focus:ring-2 focus:ring-orange-500 bg-orange-50/30 text-orange-700"
+                                        />
+                                    </div>
+                                )}
+
+                                {!isContaCasa && (
+                                    <div className="col-span-2 md:w-40">
+                                        <label className="text-[9px] font-black uppercase text-zinc-400 block mb-1 ml-1">Banco / Destino</label>
+                                        <select
+                                            disabled={forma === 'Dinheiro'}
+                                            value={banco}
+                                            onChange={e => setBanco(e.target.value)}
+                                            className="w-full border border-zinc-200 rounded-xl p-4 md:p-3 text-base md:text-sm font-bold outline-none bg-zinc-50/50 disabled:opacity-60"
+                                        >
+                                            {forma === 'Dinheiro' ? <option value="CAIXA">CAIXA</option> :
                                                 <>
                                                     <option value="SAFRA">SAFRA</option>
                                                     <option value="PAGBANK">PAGBANK</option>
                                                     <option value="CIELO">CIELO</option>
                                                 </>
-                                        }
-                                    </select>
-                                </div>
+                                            }
+                                        </select>
+                                    </div>
+                                )}
                             </>
                         ) : (
                             <div className="col-span-2 flex-1">
