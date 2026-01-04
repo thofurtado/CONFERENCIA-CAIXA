@@ -2,10 +2,9 @@
 import { useState } from 'react';
 import { Banknote, CreditCard, Smartphone, Landmark, Heart, Ticket, Edit2, Check, X } from 'lucide-react';
 
-const BANCOS_DIGITAIS = ['SAFRA', 'PAGBANK', 'CIELO'] as const;
+const BANCOS_DIGITAIS = ['SAFRA', 'PAGBANK', 'CIELO', 'IFOOD'] as const;
 const FORMAS_CASA = ['Funcionário', 'Pró-labore', 'Cortesia', 'Permuta'] as const;
 
-// Adicionei onEditAbertura nas propriedades
 export function SummaryCards({ resumo, onEditAbertura }: { resumo: any, onEditAbertura?: (valor: number) => void }) {
   const [isEditing, setIsEditing] = useState(false);
   const [tempAbertura, setTempAbertura] = useState('');
@@ -16,6 +15,7 @@ export function SummaryCards({ resumo, onEditAbertura }: { resumo: any, onEditAb
   };
 
   const totalCaixinha = safeGet(resumo, 'GERAL.totalCaixinha');
+  const cortesiaValor = safeGet(resumo, 'CASA.Cortesia');
 
   const totalPorForma = (forma: string) => {
     return BANCOS_DIGITAIS.reduce((acc, banco) => acc + safeGet(resumo, `${banco}.${forma}`), 0);
@@ -25,6 +25,9 @@ export function SummaryCards({ resumo, onEditAbertura }: { resumo: any, onEditAb
   const entradasDinheiro = safeGet(resumo, 'CAIXA.entradasDinheiro');
   const saidasDinheiro = safeGet(resumo, 'CAIXA.totalSaidas');
   const saldoFinalDinheiro = abertura + entradasDinheiro - saidasDinheiro;
+
+  const vendasLiquidasSemCortesia = safeGet(resumo, 'GERAL.entradas') - cortesiaValor;
+  const totalEmCaixaSemCortesia = (abertura + safeGet(resumo, 'GERAL.saldo')) - cortesiaValor;
 
   const handleStartEdit = () => {
     setTempAbertura(abertura.toString());
@@ -40,59 +43,65 @@ export function SummaryCards({ resumo, onEditAbertura }: { resumo: any, onEditAb
   };
 
   return (
-    <div className="space-y-4">
-      {/* HEADER COMPACTO */}
-      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 shadow-lg">
-        <div className="flex flex-col md:flex-row items-center gap-4 justify-between">
-          <div className="flex items-center gap-6 px-2">
+    <div className="space-y-6">
+      <div className="bg-slate-50 border border-slate-200 rounded-[2.5rem] p-8 md:p-10 shadow-sm">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-10 justify-between">
+          <div className="flex flex-wrap items-center gap-12 md:gap-16">
             <div>
-              <p className="text-[7px] font-black text-zinc-500 uppercase tracking-tighter italic">Vendas Líquidas</p>
-              <p className="text-xs font-mono font-bold text-emerald-500">R$ {safeGet(resumo, 'GERAL.entradas').toFixed(2)}</p>
-            </div>
-            <div className="w-[1px] h-6 bg-zinc-800" />
-            <div>
-              <p className="text-[7px] font-black text-pink-500 uppercase tracking-tighter flex items-center gap-1">
-                <Heart size={8} fill="currentColor" /> Caixinhas
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Vendas Líquidas</p>
+              <p className="text-4xl md:text-2xl font-black tracking-tighter text-emerald-600">
+                R$ {vendasLiquidasSemCortesia.toFixed(2)}
               </p>
-              <p className="text-xs font-mono font-bold text-pink-200">R$ {totalCaixinha.toFixed(2)}</p>
             </div>
-            <div className="w-[1px] h-6 bg-zinc-800" />
+
+            <div className="hidden lg:block w-[2px] h-16 bg-slate-200" />
+
             <div>
-              <p className="text-[7px] font-black text-blue-400 uppercase tracking-tighter italic">Total em Caixa</p>
-              <p className="text-sm font-mono font-black text-white">R$ {(abertura + safeGet(resumo, 'GERAL.saldo')).toFixed(2)}</p>
+              <p className="text-xs font-black text-pink-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                <Heart size={14} fill="currentColor" /> Caixinhas
+              </p>
+              <p className="text-3xl md:text-2xl font-black text-pink-600">R$ {totalCaixinha.toFixed(2)}</p>
+            </div>
+
+            <div className="hidden lg:block w-[2px] h-16 bg-slate-200" />
+
+            <div>
+              <p className="text-xs font-black text-blue-500 uppercase tracking-widest mb-2">Total Geral em Caixa</p>
+              <p className="text-4xl md:text-2xl font-black tracking-tighter text-slate-900">
+                R$ {totalEmCaixaSemCortesia.toFixed(2)}
+              </p>
             </div>
           </div>
 
-          <div className="flex gap-1 border-t md:border-t-0 md:border-l border-zinc-800 pt-3 md:pt-0 md:pl-4">
-            <div className="flex flex-col items-center px-2">
-              <span className="text-[7px] font-bold text-zinc-500 uppercase mb-1 flex items-center gap-1"><Smartphone size={8} /> Pix</span>
-              <span className="text-[10px] font-mono font-bold text-blue-400">{(totalPorForma('PIX')).toFixed(2)}</span>
+          <div className="grid grid-cols-2 gap-6 lg:gap-10 border-t lg:border-t-0 lg:border-l border-slate-200 pt-8 lg:pt-0 lg:pl-12 w-full lg:w-auto">
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-slate-400 uppercase mb-1 flex items-center gap-2"><Smartphone size={14} /> Pix</span>
+              <span className="text-xl font-mono font-black text-blue-600">{totalPorForma('PIX').toFixed(2)}</span>
             </div>
-            <div className="flex flex-col items-center px-2">
-              <span className="text-[7px] font-bold text-zinc-500 uppercase mb-1 flex items-center gap-1"><CreditCard size={8} /> Débito</span>
-              <span className="text-[10px] font-mono font-bold text-zinc-300">{(totalPorForma('Débito')).toFixed(2)}</span>
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-slate-400 uppercase mb-1 flex items-center gap-2"><CreditCard size={14} /> Débito</span>
+              <span className="text-xl font-mono font-black text-slate-600">{totalPorForma('Débito').toFixed(2)}</span>
             </div>
-            <div className="flex flex-col items-center px-2">
-              <span className="text-[7px] font-bold text-zinc-500 uppercase mb-1 flex items-center gap-1"><CreditCard size={8} /> Crédito</span>
-              <span className="text-[10px] font-mono font-bold text-zinc-300">{(totalPorForma('Crédito')).toFixed(2)}</span>
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-slate-400 uppercase mb-1 flex items-center gap-2"><CreditCard size={14} /> Crédito</span>
+              <span className="text-xl font-mono font-black text-slate-600">{totalPorForma('Crédito').toFixed(2)}</span>
             </div>
-            <div className="flex flex-col items-center px-2">
-              <span className="text-[7px] font-bold text-purple-400 uppercase mb-1 flex items-center gap-1"><Ticket size={8} /> Voucher</span>
-              <span className="text-[10px] font-mono font-bold text-purple-300">{(totalPorForma('Voucher')).toFixed(2)}</span>
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-purple-500 uppercase mb-1 flex items-center gap-2"><Ticket size={14} /> Voucher</span>
+              <span className="text-xl font-mono font-black text-purple-600">{totalPorForma('Voucher').toFixed(2)}</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-        {/* CAIXA FÍSICO COM EDIÇÃO DE ABERTURA */}
-        <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 shadow-sm relative overflow-hidden group">
-          <Banknote size={32} className="absolute -right-2 -top-2 opacity-10 text-emerald-600 rotate-12" />
-          <h2 className="font-black text-emerald-700 text-[9px] mb-3 flex items-center gap-2 uppercase tracking-tight">
-            Fluxo Dinheiro (Espécie)
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+        <div className="bg-emerald-50/50 border border-emerald-100 rounded-3xl p-5 shadow-sm relative overflow-hidden group">
+          <Banknote size={40} className="absolute -right-2 -top-2 opacity-10 text-emerald-600 rotate-12" />
+          <h2 className="font-black text-emerald-700 text-xs mb-4 flex items-center gap-2 uppercase tracking-tight">
+            Dinheiro (Espécie)
           </h2>
-          <div className="space-y-1">
-            <div className="flex justify-between items-center text-[10px] text-emerald-800 font-bold italic">
+          <div className="space-y-2">
+            <div className="flex justify-between items-center text-xs text-emerald-800 font-bold italic">
               <span className="underline decoration-emerald-200">Abertura</span>
               {isEditing ? (
                 <div className="flex items-center gap-1 bg-white p-1 rounded shadow-inner border border-emerald-200">
@@ -103,64 +112,60 @@ export function SummaryCards({ resumo, onEditAbertura }: { resumo: any, onEditAb
                     className="w-16 bg-transparent outline-none font-mono text-emerald-900"
                     autoFocus
                   />
-                  <button onClick={handleSave} className="text-emerald-600 hover:text-emerald-800"><Check size={12} /></button>
-                  <button onClick={() => setIsEditing(false)} className="text-red-400 hover:text-red-600"><X size={12} /></button>
+                  <button onClick={handleSave} className="text-emerald-600 hover:text-emerald-800"><Check size={14} /></button>
+                  <button onClick={() => setIsEditing(false)} className="text-red-400 hover:text-red-600"><X size={14} /></button>
                 </div>
               ) : (
                 <div className="flex items-center gap-1 group/btn cursor-pointer" onClick={handleStartEdit}>
                   <span>{abertura.toFixed(2)}</span>
-                  <Edit2 size={8} className="opacity-0 group-hover/btn:opacity-100 text-emerald-600" />
+                  <Edit2 size={10} className="opacity-0 group-hover/btn:opacity-100 text-emerald-600" />
                 </div>
               )}
             </div>
-            <div className="flex justify-between text-[10px] text-emerald-800/60 font-medium"><span>Vendas Dinheiro</span><span>{entradasDinheiro.toFixed(2)}</span></div>
-            <div className="flex justify-between text-[10px] text-red-500 font-bold"><span>Saídas/Sangria</span><span>-{saidasDinheiro.toFixed(2)}</span></div>
-            <div className="pt-2 mt-1 border-t border-emerald-200 flex justify-between items-center">
-              <span className="text-[9px] text-emerald-600 font-black uppercase tracking-tighter">Saldo Físico</span>
-              <span className="text-sm font-mono font-black text-emerald-700">R$ {saldoFinalDinheiro.toFixed(2)}</span>
+            <div className="flex justify-between text-xs text-emerald-800/60 font-medium"><span>Vendas</span><span>{entradasDinheiro.toFixed(2)}</span></div>
+            <div className="flex justify-between text-xs text-red-500 font-bold"><span>Saídas</span><span>-{saidasDinheiro.toFixed(2)}</span></div>
+            <div className="pt-3 mt-2 border-t border-emerald-200 flex justify-between items-center">
+              <span className="text-[10px] text-emerald-600 font-black uppercase tracking-tighter">Saldo Físico</span>
+              <span className="text-lg font-mono font-black text-emerald-700">{saldoFinalDinheiro.toFixed(2)}</span>
             </div>
           </div>
         </div>
 
-        {/* BANCOS DETALHADOS */}
         {BANCOS_DIGITAIS.map(banco => (
-          <div key={banco} className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm">
-            <h2 className="font-black text-zinc-400 text-[9px] mb-3 flex items-center gap-2 uppercase tracking-tight">
-              <Landmark size={12} className="text-blue-500" /> {banco}
+          <div key={banco} className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+            <h2 className="font-black text-slate-400 text-xs mb-4 flex items-center gap-2 uppercase tracking-tight">
+              <Landmark size={14} className="text-blue-500" /> {banco}
             </h2>
-            <div className="space-y-1 text-[10px]">
-              <div className="flex justify-between text-zinc-500"><span>Pix</span><span className="text-zinc-900 font-mono font-bold">{safeGet(resumo, `${banco}.PIX`).toFixed(2)}</span></div>
-              <div className="flex justify-between text-zinc-500"><span>Débito</span><span className="text-zinc-900 font-mono font-bold">{safeGet(resumo, `${banco}.Débito`).toFixed(2)}</span></div>
-              <div className="flex justify-between text-zinc-500"><span>Crédito</span><span className="text-zinc-900 font-mono font-bold">{safeGet(resumo, `${banco}.Crédito`).toFixed(2)}</span></div>
+            <div className="space-y-1.5 text-xs">
+              <div className="flex justify-between text-slate-500"><span>Pix</span><span className="text-slate-900 font-mono font-bold">{safeGet(resumo, `${banco}.PIX`).toFixed(2)}</span></div>
+              <div className="flex justify-between text-slate-500"><span>Débito</span><span className="text-slate-900 font-mono font-bold">{safeGet(resumo, `${banco}.Débito`).toFixed(2)}</span></div>
+              <div className="flex justify-between text-slate-500"><span>Crédito</span><span className="text-slate-900 font-mono font-bold">{safeGet(resumo, `${banco}.Crédito`).toFixed(2)}</span></div>
               <div className="flex justify-between text-purple-600 font-medium"><span>Voucher</span><span className="font-mono font-bold">{safeGet(resumo, `${banco}.Voucher`).toFixed(2)}</span></div>
-
               {safeGet(resumo, `${banco}.caixinha`) > 0 && (
                 <div className="flex justify-between text-pink-500 font-bold italic"><span>Gorjeta</span><span>{safeGet(resumo, `${banco}.caixinha`).toFixed(2)}</span></div>
               )}
-
-              <div className="pt-2 mt-1 border-t border-zinc-100 flex justify-between items-center">
-                <span className="text-[8px] font-black text-zinc-300 uppercase">Líquido</span>
-                <span className="text-sm font-mono font-black text-blue-600">{(safeGet(resumo, `${banco}.total`)).toFixed(2)}</span>
+              <div className="pt-3 mt-2 border-t border-slate-100 flex justify-between items-center">
+                <span className="text-[10px] font-black text-slate-300 uppercase">Líquido</span>
+                <span className="text-lg font-mono font-black text-blue-600">{safeGet(resumo, `${banco}.total`).toFixed(2)}</span>
               </div>
             </div>
           </div>
         ))}
 
-        {/* CASA */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 shadow-inner">
-          <h2 className="font-black text-orange-500 text-[9px] mb-3 flex items-center gap-2 uppercase italic tracking-tight">
+        <div className="bg-slate-100 border border-slate-200 rounded-3xl p-5 shadow-inner">
+          <h2 className="font-black text-orange-600 text-xs mb-4 flex items-center gap-2 uppercase italic tracking-tight">
             Consumo Interno
           </h2>
-          <div className="space-y-1 text-[9px]">
+          <div className="space-y-1.5 text-xs">
             {FORMAS_CASA.map(forma => (
-              <div key={forma} className="flex justify-between text-zinc-500 font-bold">
+              <div key={forma} className="flex justify-between text-slate-500 font-bold">
                 <span>{forma}</span>
-                <span className="text-zinc-300 font-mono">{safeGet(resumo, `CASA.${forma}`).toFixed(2)}</span>
+                <span className="text-slate-700 font-mono">{safeGet(resumo, `CASA.${forma}`).toFixed(2)}</span>
               </div>
             ))}
-            <div className="pt-2 mt-1 border-t border-zinc-800 flex justify-between items-center text-orange-500">
-              <span className="text-[8px] font-black uppercase italic">Total</span>
-              <span className="text-sm font-mono font-black italic">{safeGet(resumo, 'CASA.total').toFixed(2)}</span>
+            <div className="pt-3 mt-2 border-t border-slate-200 flex justify-between items-center text-orange-600">
+              <span className="text-[10px] font-black uppercase italic">Total</span>
+              <span className="text-lg font-mono font-black italic">{safeGet(resumo, 'CASA.total').toFixed(2)}</span>
             </div>
           </div>
         </div>

@@ -6,7 +6,7 @@ export interface Lancamento {
     valor: number;
     isCaixinha: boolean;
     isSaida?: boolean;
-    identificacao?: string; // Adicionado para sangrias
+    identificacao?: string;
     data: string;
 }
 
@@ -16,11 +16,11 @@ export interface LoteConferencia {
     id: string;
     dataReferencia: string;
     periodo: string;
-    valorAbertura: number; // Garanta que este campo existe
-    status: StatusCaixa;   // ADICIONE ESTA LINHA
+    valorAbertura: number;
+    status: StatusCaixa;
     lancamentos: Lancamento[];
 }
 
-export const BANCOS_DIGITAIS = ['SAFRA', 'PAGBANK', 'CIELO'];
+export const BANCOS_DIGITAIS = ['SAFRA', 'PAGBANK', 'CIELO', 'IFOOD'];
 export const FORMAS_BANCO = ['Pix', 'Voucher', 'Débito', 'Crédito'];
 export const FORMAS_CASA = ['Funcionário', 'Pro-labore', 'Cortesia', 'Permuta'];

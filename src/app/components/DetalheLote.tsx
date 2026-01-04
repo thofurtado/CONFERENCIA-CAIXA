@@ -38,8 +38,8 @@ export function DetalheLote({
     const formasCasa = ['Funcionário', 'Pró-labore', 'Cortesia', 'Permuta'];
 
     const entradasRaw = loteAtivo.lancamentos.filter((l: any) => !l.isSaida && !formasCasa.includes(l.formaPagamento));
-    const consumoCasaRaw = loteAtivo.lancamentos.filter((l: any) => formasCasa.includes(l.formaPagamento));
-    const sangrias = loteAtivo.lancamentos.filter((l: any) => l.isSaida);
+    const consumoCasaRaw = [...loteAtivo.lancamentos.filter((l: any) => formasCasa.includes(l.formaPagamento))].reverse();
+    const sangrias = [...loteAtivo.lancamentos.filter((l: any) => l.isSaida)].reverse();
 
     const entradasProcessadas = useMemo(() => {
         let result = [...entradasRaw];
@@ -54,6 +54,8 @@ export function DetalheLote({
                 if (a[key] > b[key]) return sortConfig.direction === 'asc' ? 1 : -1;
                 return 0;
             });
+        } else {
+            result.reverse();
         }
         return result;
     }, [entradasRaw, filtro, sortConfig]);
@@ -161,7 +163,6 @@ export function DetalheLote({
                 <SummaryCards resumo={resumoLote} onEditAbertura={onEditarAbertura} />
                 <TransactionForm onAdd={onAdicionarLancamento} />
 
-                {/* Tabela de Vendas */}
                 <div className="space-y-2">
                     <div className="flex items-center justify-between px-2">
                         <div className="flex items-center gap-2 text-zinc-400 uppercase font-black text-[10px]">
@@ -260,7 +261,6 @@ export function DetalheLote({
                     </div>
                 </div>
 
-                {/* Sangrias */}
                 <div className="space-y-2">
                     <div className="flex items-center gap-2 px-2 text-red-400 uppercase font-black text-[10px]">
                         <Wallet2 size={14} /> Sangrias
@@ -286,7 +286,6 @@ export function DetalheLote({
                     </div>
                 </div>
 
-                {/* Consumo Casa / Colaboradores */}
                 {consumoCasaRaw.length > 0 && (
                     <div className="space-y-2">
                         <div className="flex items-center gap-2 px-2 text-orange-500 uppercase font-black text-[10px]">
