@@ -1,7 +1,6 @@
 "use client"
 import { useState, useEffect } from 'react';
 
-// Detecta se está em produção na Vercel
 const IS_PROD = process.env.NODE_ENV === 'production';
 const API_URL = '/api/caixa';
 const LOCAL_STORAGE_KEY = '@marujo-caixa';
@@ -11,7 +10,6 @@ export function useCaixa() {
     const [loteAtivoId, setLoteAtivoId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // 1. CARREGAR DADOS (Híbrido)
     useEffect(() => {
         async function loadData() {
             setLoading(true);
@@ -33,7 +31,6 @@ export function useCaixa() {
         loadData();
     }, []);
 
-    // 2. SALVAR DADOS (Sempre que o estado 'lotes' mudar)
     useEffect(() => {
         if (loading) return;
 
@@ -50,9 +47,7 @@ export function useCaixa() {
 
     const loteAtivo = lotes.find(l => l.id === loteAtivoId);
 
-    // FUNÇÕES DE MANIPULAÇÃO
     const criarNovoLote = (data: string, periodo: string, abertura: number) => {
-        // REGRA: Impedir duplicidade de período no mesmo dia
         const jaExiste = lotes.find(l =>
             l.dataReferencia === data &&
             l.periodo.toLowerCase() === periodo.toLowerCase()
@@ -70,7 +65,7 @@ export function useCaixa() {
             periodo,
             valorAbertura: Number(abertura),
             lancamentos: [],
-            status: 'pendente' // Inicia como pendente por padrão
+            status: 'pendente'
         };
         setLotes([...lotes, novo]);
         setLoteAtivoId(id);
@@ -92,7 +87,6 @@ export function useCaixa() {
         setLotes(lotes.map(l => (l.id === loteAtivoId ? { ...l, valorAbertura: novoValor } : l)));
     };
 
-    // NOVA FUNÇÃO: Alterar Status (Conferido, Alerta, Pendente)
     const alterarStatus = (id: string, novoStatus: string) => {
         setLotes(lotes.map(l => (l.id === id ? { ...l, status: novoStatus } : l)));
     };
@@ -101,7 +95,7 @@ export function useCaixa() {
 
     const resumoLote = loteAtivo ? (() => {
         const lancamentos = loteAtivo.lancamentos || [];
-        const bancos = ['SAFRA', 'PAGBANK', 'CIELO'];
+        const bancos = ['SAFRA', 'PAGBANK', 'CIELO', 'IFOOD'];
         const formasCasa = ['Funcionário', 'Pró-labore', 'Cortesia', 'Permuta'];
 
         const resumo: any = {
@@ -138,6 +132,7 @@ export function useCaixa() {
                 } else if (formasCasa.includes(l.formaPagamento)) {
                     resumo.CASA[l.formaPagamento] += valorRealVenda;
                     resumo.CASA.total += valorRealVenda;
+                    resumo.GERAL.entradas += valorRealVenda;
                 }
             }
         });
@@ -155,7 +150,7 @@ export function useCaixa() {
         removerLancamento,
         editarLancamento,
         editarAbertura,
-        alterarStatus, // Exportada para a Page usar
+        alterarStatus,
         apagarLote,
         resumoLote,
         loading

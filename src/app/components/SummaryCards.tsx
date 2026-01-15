@@ -15,28 +15,24 @@ export function SummaryCards({ resumo, onEditAbertura }: { resumo: any, onEditAb
   };
 
   const totalCaixinha = safeGet(resumo, 'GERAL.totalCaixinha');
-  const cortesiaValor = safeGet(resumo, 'CASA.Cortesia');
+  const abertura = safeGet(resumo, 'CAIXA.saldoAbertura');
+  const entradasDinheiro = safeGet(resumo, 'CAIXA.entradasDinheiro');
+  const saidasDinheiro = safeGet(resumo, 'CAIXA.totalSaidas');
 
   const totalPorForma = (forma: string) => {
     return BANCOS_DIGITAIS.reduce((acc, banco) => acc + safeGet(resumo, `${banco}.${forma}`), 0);
   };
 
-  const abertura = safeGet(resumo, 'CAIXA.saldoAbertura');
-  const entradasDinheiro = safeGet(resumo, 'CAIXA.entradasDinheiro');
-  const saidasDinheiro = safeGet(resumo, 'CAIXA.totalSaidas');
-
   const { vendasLiquidas, totalGeralEmCaixa } = useMemo(() => {
-    const totalBancos = BANCOS_DIGITAIS.reduce((acc, banco) => acc + safeGet(resumo, `${banco}.total`), 0);
-    const totalCasaSemCortesia = safeGet(resumo, 'CASA.total') - cortesiaValor;
-
-    const vLiquidas = totalBancos + entradasDinheiro + totalCasaSemCortesia;
-    const tGeral = (abertura + vLiquidas) - saidasDinheiro;
+    const cortesia = safeGet(resumo, 'CASA.Cortesia');
+    const vLiquidas = safeGet(resumo, 'GERAL.entradas') - cortesia;
+    const tGeral = (abertura + safeGet(resumo, 'GERAL.saldo')) - cortesia;
 
     return {
       vendasLiquidas: vLiquidas,
       totalGeralEmCaixa: tGeral
     };
-  }, [resumo, abertura, entradasDinheiro, saidasDinheiro, cortesiaValor]);
+  }, [resumo, abertura]);
 
   const saldoFinalDinheiro = abertura + entradasDinheiro - saidasDinheiro;
 
