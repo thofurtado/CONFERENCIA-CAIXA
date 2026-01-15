@@ -1,5 +1,5 @@
 "use client"
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Banknote, CreditCard, Smartphone, Landmark, Heart, Ticket, Edit2, Check, X } from 'lucide-react';
 
 const BANCOS_DIGITAIS = ['SAFRA', 'PAGBANK', 'CIELO', 'IFOOD'] as const;
@@ -24,10 +24,21 @@ export function SummaryCards({ resumo, onEditAbertura }: { resumo: any, onEditAb
   const abertura = safeGet(resumo, 'CAIXA.saldoAbertura');
   const entradasDinheiro = safeGet(resumo, 'CAIXA.entradasDinheiro');
   const saidasDinheiro = safeGet(resumo, 'CAIXA.totalSaidas');
-  const saldoFinalDinheiro = abertura + entradasDinheiro - saidasDinheiro;
 
-  const vendasLiquidasSemCortesia = safeGet(resumo, 'GERAL.entradas') - cortesiaValor;
-  const totalEmCaixaSemCortesia = (abertura + safeGet(resumo, 'GERAL.saldo')) - cortesiaValor;
+  const { vendasLiquidas, totalGeralEmCaixa } = useMemo(() => {
+    const totalBancos = BANCOS_DIGITAIS.reduce((acc, banco) => acc + safeGet(resumo, `${banco}.total`), 0);
+    const totalCasaSemCortesia = safeGet(resumo, 'CASA.total') - cortesiaValor;
+
+    const vLiquidas = totalBancos + entradasDinheiro + totalCasaSemCortesia;
+    const tGeral = (abertura + vLiquidas) - saidasDinheiro;
+
+    return {
+      vendasLiquidas: vLiquidas,
+      totalGeralEmCaixa: tGeral
+    };
+  }, [resumo, abertura, entradasDinheiro, saidasDinheiro, cortesiaValor]);
+
+  const saldoFinalDinheiro = abertura + entradasDinheiro - saidasDinheiro;
 
   const handleStartEdit = () => {
     setTempAbertura(abertura.toString());
@@ -50,7 +61,7 @@ export function SummaryCards({ resumo, onEditAbertura }: { resumo: any, onEditAb
             <div>
               <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Vendas Líquidas</p>
               <p className="text-4xl md:text-2xl font-black tracking-tighter text-emerald-600">
-                R$ {vendasLiquidasSemCortesia.toFixed(2)}
+                R$ {vendasLiquidas.toFixed(2)}
               </p>
             </div>
 
@@ -68,7 +79,7 @@ export function SummaryCards({ resumo, onEditAbertura }: { resumo: any, onEditAb
             <div>
               <p className="text-xs font-black text-blue-500 uppercase tracking-widest mb-2">Total Geral em Caixa</p>
               <p className="text-4xl md:text-2xl font-black tracking-tighter text-slate-900">
-                R$ {totalEmCaixaSemCortesia.toFixed(2)}
+                R$ {totalGeralEmCaixa.toFixed(2)}
               </p>
             </div>
           </div>
