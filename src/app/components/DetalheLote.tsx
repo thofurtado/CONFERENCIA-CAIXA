@@ -34,32 +34,71 @@ export function DetalheLote({
     const [mostrarFiltros, setMostrarFiltros] = useState(false);
     const [editandoAbertura, setEditandoAbertura] = useState(false);
     const [valorAberturaTemp, setValorAberturaTemp] = useState('0');
+    const [activeTab, setActiveTab] = useState('Todas');
     const [exibirSumario, setExibirSumario] = useState(false);
 
     const formasCasa = ['Funcionário', 'Pró-labore', 'Cortesia', 'Permuta'];
 
-    const entradasRaw = loteAtivo.lancamentos.filter((l: any) => !l.isSaida && !formasCasa.includes(l.formaPagamento));
-    const consumoCasaRaw = [...loteAtivo.lancamentos.filter((l: any) => formasCasa.includes(l.formaPagamento))].reverse();
+    // Extrair bancos únicos para o select
+    const bancosUnicos = useMemo(() => {
+        const bancos = loteAtivo.lancamentos
+            .filter((l: any) => l.banco && !l.isSaida)
+            .map((l: any) => l.banco)
+            .filter((b: any, i: number, self: any[]) => self.indexOf(b) === i && b.trim() !== '');
+        return bancos.sort();
+    }, [loteAtivo.lancamentos]);
+
     const sangrias = [...loteAtivo.lancamentos.filter((l: any) => l.isSaida)].reverse();
 
-    const entradasProcessadas = useMemo(() => {
-        let result = [...entradasRaw];
-        if (filtro.mesa) result = result.filter(l => l.mesa?.toString().includes(filtro.mesa));
-        if (filtro.banco) result = result.filter(l => l.banco.toLowerCase().includes(filtro.banco.toLowerCase()));
-        if (filtro.forma) result = result.filter(l => l.formaPagamento.toLowerCase().includes(filtro.forma.toLowerCase()));
+    const tabs = [
+        { id: 'Todas', label: 'Todas' },
+        { id: 'Dinheiro / Pix', label: 'Dinheiro / Pix' },
+        { id: 'Débito', label: 'Débito' },
+        { id: 'Crédito', label: 'Crédito' },
+        { id: 'Voucher', label: 'Voucher' },
+        { id: 'Consumo Interno', label: 'Consumo Interno' },
+    ];
 
+    const vendasFiltradas = useMemo(() => {
+        let items = loteAtivo.lancamentos.filter((l: any) => !l.isSaida);
+
+        // Filtro por Aba
+        if (activeTab === 'Dinheiro / Pix') {
+            items = items.filter((l: any) => ['Dinheiro', 'PIX'].includes(l.formaPagamento) && !formasCasa.includes(l.formaPagamento));
+        } else if (activeTab === 'Débito') {
+            items = items.filter((l: any) => l.formaPagamento === 'Débito');
+        } else if (activeTab === 'Crédito') {
+            items = items.filter((l: any) => l.formaPagamento === 'Crédito');
+        } else if (activeTab === 'Voucher') {
+            items = items.filter((l: any) => l.formaPagamento === 'Voucher');
+        } else if (activeTab === 'Consumo Interno') {
+            items = items.filter((l: any) => formasCasa.includes(l.formaPagamento));
+        } else if (activeTab === 'Todas') {
+            // Todas mostra tudo exceto saídas (já filtrado acima)
+            // Se quiser excluir consumo interno do 'Todas', descomente abaixo. 
+            // Assumindo que 'Todas' inclui consumo interno também.
+        }
+
+        // Filtros de Texto/Select
+        if (filtro.mesa) items = items.filter((l: any) => l.mesa?.toString().includes(filtro.mesa));
+        if (filtro.banco) items = items.filter((l: any) => (l.banco || '').toLowerCase().includes(filtro.banco.toLowerCase()));
+        if (filtro.forma) items = items.filter((l: any) => l.formaPagamento.toLowerCase().includes(filtro.forma.toLowerCase()));
+
+        // Ordenação
         if (sortConfig.key) {
-            result.sort((a, b) => {
+            items.sort((a: any, b: any) => {
                 const key = sortConfig.key as keyof typeof a;
                 if (a[key] < b[key]) return sortConfig.direction === 'asc' ? -1 : 1;
                 if (a[key] > b[key]) return sortConfig.direction === 'asc' ? 1 : -1;
                 return 0;
             });
         } else {
-            result.reverse();
+            items.reverse();
         }
-        return result;
-    }, [entradasRaw, filtro, sortConfig]);
+        return items;
+    }, [loteAtivo.lancamentos, activeTab, filtro, sortConfig, formasCasa]);
+
+
 
     const getStatusConfig = (status: string) => {
         switch (status) {
@@ -179,10 +218,10 @@ export function DetalheLote({
                 {exibirSumario && <SummaryCards resumo={resumoLote} onEditAbertura={onEditarAbertura} />}
                 <TransactionForm onAdd={onAdicionarLancamento} />
 
-                <div className="space-y-2">
+                <div className="space-y-4">
                     <div className="flex items-center justify-between px-2">
                         <div className="flex items-center gap-2 text-zinc-400 uppercase font-black text-[10px]">
-                            <ShoppingBag size={14} /> Vendas ({entradasProcessadas.length})
+                            <ShoppingBag size={14} /> Lista de Vendas ({vendasFiltradas.length})
                         </div>
                         <button
                             onClick={() => setMostrarFiltros(!mostrarFiltros)}
@@ -192,6 +231,23 @@ export function DetalheLote({
                         </button>
                     </div>
 
+                    {/* Tabs Navigation */}
+                    <div className="flex flex-wrap gap-2 border-b border-zinc-200 pb-1 mb-4 overflow-x-auto">
+                        {tabs.map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`px-4 py-2 text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap
+                                    ${activeTab === tab.id
+                                        ? 'border-b-2 border-blue-600 text-blue-600'
+                                        : 'text-zinc-400 hover:text-zinc-600'
+                                    }`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+
                     {mostrarFiltros && (
                         <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div>
@@ -199,8 +255,17 @@ export function DetalheLote({
                                 <input type="text" value={filtro.mesa} onChange={e => setFiltro({ ...filtro, mesa: e.target.value })} placeholder="Filtrar por mesa..." className="w-full border border-zinc-200 rounded-xl p-2 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
                             </div>
                             <div>
-                                <label className="text-[9px] font-black uppercase text-zinc-400 block mb-1 ml-1">Banco</label>
-                                <input type="text" value={filtro.banco} onChange={e => setFiltro({ ...filtro, banco: e.target.value })} placeholder="Filtrar por banco..." className="w-full border border-zinc-200 rounded-xl p-2 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
+                                <label className="text-[9px] font-black uppercase text-zinc-400 block mb-1 ml-1">Banco / Destino</label>
+                                <select
+                                    value={filtro.banco}
+                                    onChange={e => setFiltro({ ...filtro, banco: e.target.value })}
+                                    className="w-full border border-zinc-200 rounded-xl p-2 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                >
+                                    <option value="">Todos os Bancos</option>
+                                    {bancosUnicos.map((b: string) => (
+                                        <option key={b} value={b}>{b}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div>
                                 <label className="text-[9px] font-black uppercase text-zinc-400 block mb-1 ml-1">Forma</label>
@@ -214,64 +279,85 @@ export function DetalheLote({
                             <table className="w-full text-left text-sm min-w-[700px]">
                                 <thead className="bg-zinc-50 border-b text-[9px] font-black text-zinc-400 uppercase">
                                     <tr>
-                                        <th className="p-4">Mesa</th>
-                                        <th className="p-4">Banco</th>
+                                        <th className="p-4">Mesa / Origem</th>
+                                        <th className="p-4">Banco / Consumidor</th>
                                         <th className="p-4">Forma</th>
                                         <th className="p-4 text-right">Valor</th>
                                         <th className="p-4 w-24"></th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y">
-                                    {entradasProcessadas.map((l: any) => (
-                                        <tr key={l.id} className="hover:bg-zinc-50 transition-colors">
-                                            {editandoId === l.id ? (
-                                                <>
-                                                    <td className="p-2"><input type="text" value={dadosEdicao.mesa || ''} onChange={e => setDadosEdicao({ ...dadosEdicao, mesa: e.target.value })} className="w-full px-2 py-1 border border-blue-300 rounded text-sm font-bold" /></td>
-                                                    <td className="p-2">
-                                                        <select value={dadosEdicao.banco} onChange={e => setDadosEdicao({ ...dadosEdicao, banco: e.target.value })} className="w-full px-2 py-1 border border-blue-300 rounded text-[9px] font-bold">
-                                                            <option value="CAIXA">CAIXA</option>
-                                                            <option value="SAFRA">SAFRA</option>
-                                                            <option value="PAGBANK">PAGBANK</option>
-                                                            <option value="CIELO">CIELO</option>
-                                                            <option value="CONTA DA CASA">CONTA DA CASA</option>
-                                                        </select>
-                                                    </td>
-                                                    <td className="p-2">
-                                                        <select value={dadosEdicao.formaPagamento} onChange={e => setDadosEdicao({ ...dadosEdicao, formaPagamento: e.target.value })} className="w-full px-2 py-1 border border-blue-300 rounded text-[9px] font-bold">
-                                                            <option value="Dinheiro">Dinheiro</option>
-                                                            <option value="PIX">PIX</option>
-                                                            <option value="Débito">Débito</option>
-                                                            <option value="Crédito">Crédito</option>
-                                                            <option value="Voucher">Voucher</option>
-                                                        </select>
-                                                    </td>
-                                                    <td className="p-2"><input type="number" step="0.01" value={dadosEdicao.valor} onChange={e => setDadosEdicao({ ...dadosEdicao, valor: parseFloat(e.target.value) })} className="w-full px-2 py-1 border border-blue-300 rounded text-sm font-bold text-right" /></td>
-                                                    <td className="p-2">
-                                                        <div className="flex gap-1 justify-end">
-                                                            <button onClick={salvarEdicao} className="text-green-600 p-1"><Check size={18} /></button>
-                                                            <button onClick={cancelarEdicao} className="text-red-500 p-1"><X size={18} /></button>
-                                                        </div>
-                                                    </td>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <td className="p-4 font-bold"> M {l.mesa || '--'}</td>
-                                                    <td className="p-4 font-black text-[9px] text-zinc-400 uppercase">{l.banco}</td>
-                                                    <td className="p-4 font-bold text-zinc-500 uppercase text-[9px]">
-                                                        {l.formaPagamento} {l.valorCaixinha > 0 && <span className="text-pink-500 ml-1">♥</span>}
-                                                    </td>
-                                                    <td className="p-4 text-right font-mono font-black text-zinc-900">R$ {l.valor.toFixed(2)}</td>
-                                                    <td className="p-4">
-                                                        <div className="flex gap-1 justify-end">
-                                                            <button onClick={() => iniciarEdicao(l)} className="text-zinc-300 hover:text-blue-500 p-2"><Edit2 size={16} /></button>
-                                                            <button onClick={() => onRemoverLancamento(l.id)} className="text-zinc-200 hover:text-red-500 p-2"><Trash2 size={18} /></button>
-                                                        </div>
-                                                    </td>
-                                                </>
-                                            )}
+                                    {vendasFiltradas.length > 0 ? (
+                                        vendasFiltradas.map((l: any) => (
+                                            <tr key={l.id} className="hover:bg-zinc-50 transition-colors">
+                                                {editandoId === l.id ? (
+                                                    <>
+                                                        <td className="p-2"><input type="text" value={dadosEdicao.mesa || ''} onChange={e => setDadosEdicao({ ...dadosEdicao, mesa: e.target.value })} className="w-full px-2 py-1 border border-blue-300 rounded text-sm font-bold" /></td>
+                                                        <td className="p-2">
+                                                            <select value={dadosEdicao.banco} onChange={e => setDadosEdicao({ ...dadosEdicao, banco: e.target.value })} className="w-full px-2 py-1 border border-blue-300 rounded text-[9px] font-bold">
+                                                                <option value="CAIXA">CAIXA</option>
+                                                                <option value="SAFRA">SAFRA</option>
+                                                                <option value="PAGBANK">PAGBANK</option>
+                                                                <option value="CIELO">CIELO</option>
+                                                                <option value="CONTA DA CASA">CONTA DA CASA</option>
+                                                            </select>
+                                                        </td>
+                                                        <td className="p-2">
+                                                            <select value={dadosEdicao.formaPagamento} onChange={e => setDadosEdicao({ ...dadosEdicao, formaPagamento: e.target.value })} className="w-full px-2 py-1 border border-blue-300 rounded text-[9px] font-bold">
+                                                                <option value="Dinheiro">Dinheiro</option>
+                                                                <option value="PIX">PIX</option>
+                                                                <option value="Débito">Débito</option>
+                                                                <option value="Crédito">Crédito</option>
+                                                                <option value="Voucher">Voucher</option>
+                                                            </select>
+                                                        </td>
+                                                        <td className="p-2"><input type="number" step="0.01" value={dadosEdicao.valor} onChange={e => setDadosEdicao({ ...dadosEdicao, valor: parseFloat(e.target.value) })} className="w-full px-2 py-1 border border-blue-300 rounded text-sm font-bold text-right" /></td>
+                                                        <td className="p-2">
+                                                            <div className="flex gap-1 justify-end">
+                                                                <button onClick={salvarEdicao} className="text-green-600 p-1"><Check size={18} /></button>
+                                                                <button onClick={cancelarEdicao} className="text-red-500 p-1"><X size={18} /></button>
+                                                            </div>
+                                                        </td>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <td className="p-4 font-bold"> {l.mesa ? `M ${l.mesa}` : 'Balcão'}</td>
+                                                        <td className="p-4 font-black text-[9px] text-zinc-400 uppercase">
+                                                            {l.consumidorCasa || l.banco}
+                                                        </td>
+                                                        <td className="p-4 font-bold text-zinc-500 uppercase text-[9px]">
+                                                            {l.formaPagamento} {l.valorCaixinha > 0 && <span className="text-pink-500 ml-1">♥</span>}
+                                                        </td>
+                                                        <td className="p-4 text-right font-mono font-black text-zinc-900">R$ {l.valor.toFixed(2)}</td>
+                                                        <td className="p-4">
+                                                            <div className="flex gap-1 justify-end">
+                                                                <button onClick={() => iniciarEdicao(l)} className="text-zinc-300 hover:text-blue-500 p-2"><Edit2 size={16} /></button>
+                                                                <button onClick={() => onRemoverLancamento(l.id)} className="text-zinc-200 hover:text-red-500 p-2"><Trash2 size={18} /></button>
+                                                            </div>
+                                                        </td>
+                                                    </>
+                                                )}
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={5} className="p-8 text-center text-zinc-400 text-xs italic">
+                                                Nenhum lançamento encontrado nesta categoria/filtro.
+                                            </td>
                                         </tr>
-                                    ))}
+                                    )}
                                 </tbody>
+                                {vendasFiltradas.length > 0 && (
+                                    <tfoot className="bg-zinc-50 border-t">
+                                        <tr>
+                                            <td colSpan={3} className="p-4 text-right text-[10px] font-black uppercase text-zinc-500">Total desta página</td>
+                                            <td className="p-4 text-right font-mono font-black text-blue-600">
+                                                R$ {vendasFiltradas.reduce((acc: number, cur: any) => acc + cur.valor, 0).toFixed(2)}
+                                            </td>
+                                            <td></td>
+                                        </tr>
+                                    </tfoot>
+                                )}
                             </table>
                         </div>
                     </div>
@@ -302,53 +388,7 @@ export function DetalheLote({
                     </div>
                 </div>
 
-                {consumoCasaRaw.length > 0 && (
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-2 px-2 text-orange-500 uppercase font-black text-[10px]">
-                            <User size={14} /> Consumo Casa / Colaboradores
-                        </div>
-                        <div className="bg-white rounded-[1.5rem] md:rounded-3xl border border-orange-100 shadow-sm overflow-hidden">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm min-w-[700px]">
-                                    <thead className="bg-orange-50/50 border-b border-orange-100 text-[9px] font-black text-orange-400 uppercase">
-                                        <tr>
-                                            <th className="p-4">Consumidor</th>
-                                            <th className="p-4">Tipo</th>
-                                            <th className="p-4">Origem</th>
-                                            <th className="p-4 text-right">Valor</th>
-                                            <th className="p-4 w-24"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-orange-50">
-                                        {consumoCasaRaw.map((l: any) => (
-                                            <tr key={l.id} className="hover:bg-orange-50/30 transition-colors">
-                                                <td className="p-4">
-                                                    <span className="text-sm font-bold text-zinc-700">{l.consumidorCasa || 'Não informado'}</span>
-                                                </td>
-                                                <td className="p-4">
-                                                    <span className="px-2 py-1 rounded-md bg-orange-100 text-orange-600 text-[9px] font-black uppercase">
-                                                        {l.formaPagamento}
-                                                    </span>
-                                                </td>
-                                                <td className="p-4">
-                                                    <span className="text-[9px] text-zinc-400 font-bold uppercase">{l.mesa ? `Mesa ${l.mesa}` : 'Balcão'}</span>
-                                                </td>
-                                                <td className="p-4 text-right">
-                                                    <span className="font-mono font-black text-orange-600">R$ {l.valor.toFixed(2)}</span>
-                                                </td>
-                                                <td className="p-4 text-right">
-                                                    <button onClick={() => onRemoverLancamento(l.id)} className="text-orange-200 hover:text-red-500 p-2 transition-colors">
-                                                        <Trash2 size={18} />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                )}
+
 
                 <CaixinhasTable lancamentos={loteAtivo.lancamentos} />
             </div>
