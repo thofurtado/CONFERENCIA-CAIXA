@@ -71,13 +71,71 @@ export function DashboardCaixa({ lotes, onCriarNovo, onSelecionar, onApagar }: D
     return (
         <div className="min-h-screen bg-zinc-50 p-4 md:p-6 text-zinc-900 flex flex-col">
             <div className="max-w-5xl mx-auto space-y-6 flex-1 w-full">
-                <header className="flex items-center gap-4 mb-8">
-                    <div className="bg-zinc-900 p-3 rounded-2xl text-white shadow-xl">
-                        <Anchor size={32} />
+                <header className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+                    <div className="flex items-center gap-4">
+                        <div className="bg-zinc-900 p-3 rounded-2xl text-white shadow-xl">
+                            <Anchor size={32} />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-black uppercase tracking-tighter leading-none">Marujo</h1>
+                            <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em]">Conferência</span>
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-2xl font-black uppercase tracking-tighter leading-none">Marujo</h1>
-                        <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em]">Conferência</span>
+
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => window.open('/api/backup/export', '_blank')}
+                            className="bg-zinc-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-zinc-800 transition-colors flex items-center gap-2"
+                        >
+                            <Download size={14} /> Exportar Backup
+                        </button>
+
+                        <div className="relative">
+                            <input
+                                type="file"
+                                id="import-backup"
+                                className="hidden"
+                                accept=".json"
+                                onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+
+                                    if (!window.confirm(`Você tem certeza que deseja restaurar o backup "${file.name}"? Isso irá sobrescrever/mesclar os dados atuais.`)) {
+                                        e.target.value = ''; // Reset input
+                                        return;
+                                    }
+
+                                    try {
+                                        const fileContent = await file.text();
+                                        const jsonData = JSON.parse(fileContent);
+
+                                        const response = await fetch('/api/backup/import', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify(jsonData)
+                                        });
+
+                                        if (response.ok) {
+                                            alert('Backup restaurado com sucesso!');
+                                            window.location.reload();
+                                        } else {
+                                            const errorData = await response.json();
+                                            alert('Erro ao restaurar: ' + (errorData.error || 'Erro desconhecido'));
+                                        }
+                                    } catch (err) {
+                                        console.error(err);
+                                        alert('Erro ao processar arquivo de backup.');
+                                    }
+                                    e.target.value = ''; // Reset import
+                                }}
+                            />
+                            <label
+                                htmlFor="import-backup"
+                                className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-blue-700 transition-colors flex items-center gap-2 cursor-pointer shadow-lg shadow-blue-600/20"
+                            >
+                                <Clock size={14} /> Importar Backup
+                            </label>
+                        </div>
                     </div>
                 </header>
 

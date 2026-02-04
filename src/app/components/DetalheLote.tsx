@@ -1,6 +1,6 @@
 "use client"
 import { useState, useMemo } from 'react';
-import { ArrowLeft, ShoppingBag, Trash2, Wallet2, Printer, Edit2, Check, X, Filter, CheckCircle2, AlertCircle, Clock, User } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Trash2, Wallet2, Printer, Edit2, Check, X, Filter, CheckCircle2, AlertCircle, Clock, User, Eye, ChevronUp } from 'lucide-react';
 import { SummaryCards } from './SummaryCards';
 import { TransactionForm } from './TransactionForm';
 import { CaixinhasTable } from './CaixinhasTable';
@@ -34,6 +34,7 @@ export function DetalheLote({
     const [mostrarFiltros, setMostrarFiltros] = useState(false);
     const [editandoAbertura, setEditandoAbertura] = useState(false);
     const [valorAberturaTemp, setValorAberturaTemp] = useState('0');
+    const [exibirSumario, setExibirSumario] = useState(false);
 
     const formasCasa = ['Funcionário', 'Pró-labore', 'Cortesia', 'Permuta'];
 
@@ -160,7 +161,22 @@ export function DetalheLote({
             </header>
 
             <div className="max-w-[1400px] mx-auto space-y-4 md:space-y-6">
-                <SummaryCards resumo={resumoLote} onEditAbertura={onEditarAbertura} />
+                <button
+                    onClick={() => setExibirSumario(!exibirSumario)}
+                    className="w-full py-3 mb-4 bg-zinc-100/80 text-zinc-600 rounded-xl hover:bg-zinc-200 font-medium transition-colors flex items-center justify-center gap-2 uppercase text-xs tracking-wider"
+                >
+                    {exibirSumario ? (
+                        <>
+                            <ChevronUp size={16} /> Ocultar Painel
+                        </>
+                    ) : (
+                        <>
+                            <Eye size={16} /> Mostrar Painel de Conferência
+                        </>
+                    )}
+                </button>
+
+                {exibirSumario && <SummaryCards resumo={resumoLote} onEditAbertura={onEditarAbertura} />}
                 <TransactionForm onAdd={onAdicionarLancamento} />
 
                 <div className="space-y-2">
