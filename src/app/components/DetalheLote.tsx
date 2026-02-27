@@ -52,7 +52,8 @@ export function DetalheLote({
 
     const tabs = [
         { id: 'Todas', label: 'Todas' },
-        { id: 'Dinheiro / Pix', label: 'Dinheiro / Pix' },
+        { id: 'Dinheiro', label: 'Dinheiro' },
+        { id: 'Pix', label: 'Pix' },
         { id: 'Débito', label: 'Débito' },
         { id: 'Crédito', label: 'Crédito' },
         { id: 'Voucher', label: 'Voucher' },
@@ -63,8 +64,10 @@ export function DetalheLote({
         let items = loteAtivo.lancamentos.filter((l: any) => !l.isSaida);
 
         // Filtro por Aba
-        if (activeTab === 'Dinheiro / Pix') {
-            items = items.filter((l: any) => ['Dinheiro', 'PIX'].includes(l.formaPagamento) && !formasCasa.includes(l.formaPagamento));
+        if (activeTab === 'Dinheiro') {
+            items = items.filter((l: any) => l.formaPagamento === 'Dinheiro' && !formasCasa.includes(l.formaPagamento));
+        } else if (activeTab === 'Pix') {
+            items = items.filter((l: any) => l.formaPagamento === 'PIX' && !formasCasa.includes(l.formaPagamento));
         } else if (activeTab === 'Débito') {
             items = items.filter((l: any) => l.formaPagamento === 'Débito');
         } else if (activeTab === 'Crédito') {
@@ -279,6 +282,7 @@ export function DetalheLote({
                             <table className="w-full text-left text-sm min-w-[700px]">
                                 <thead className="bg-zinc-50 border-b text-[9px] font-black text-zinc-400 uppercase">
                                     <tr>
+                                        <th className="p-4 w-12 text-center"><Check size={14} className="inline-block" /></th>
                                         <th className="p-4">Mesa / Origem</th>
                                         <th className="p-4">Banco / Consumidor</th>
                                         <th className="p-4">Forma</th>
@@ -292,6 +296,14 @@ export function DetalheLote({
                                             <tr key={l.id} className="hover:bg-zinc-50 transition-colors">
                                                 {editandoId === l.id ? (
                                                     <>
+                                                        <td className="p-2 text-center">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={!!dadosEdicao.conferido}
+                                                                onChange={e => setDadosEdicao({ ...dadosEdicao, conferido: e.target.checked })}
+                                                                className="w-4 h-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                            />
+                                                        </td>
                                                         <td className="p-2"><input type="text" value={dadosEdicao.mesa || ''} onChange={e => setDadosEdicao({ ...dadosEdicao, mesa: e.target.value })} className="w-full px-2 py-1 border border-blue-300 rounded text-sm font-bold" /></td>
                                                         <td className="p-2">
                                                             <select value={dadosEdicao.banco} onChange={e => setDadosEdicao({ ...dadosEdicao, banco: e.target.value })} className="w-full px-2 py-1 border border-blue-300 rounded text-[9px] font-bold">
@@ -321,6 +333,14 @@ export function DetalheLote({
                                                     </>
                                                 ) : (
                                                     <>
+                                                        <td className="p-4 text-center">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={!!l.conferido}
+                                                                onChange={e => onEditarLancamento(l.id, { ...l, conferido: e.target.checked })}
+                                                                className="w-4 h-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                            />
+                                                        </td>
                                                         <td className="p-4 font-bold"> {l.mesa ? `M ${l.mesa}` : 'Balcão'}</td>
                                                         <td className="p-4 font-black text-[9px] text-zinc-400 uppercase">
                                                             {l.consumidorCasa || l.banco}
@@ -341,7 +361,7 @@ export function DetalheLote({
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan={5} className="p-8 text-center text-zinc-400 text-xs italic">
+                                            <td colSpan={6} className="p-8 text-center text-zinc-400 text-xs italic">
                                                 Nenhum lançamento encontrado nesta categoria/filtro.
                                             </td>
                                         </tr>
@@ -350,7 +370,7 @@ export function DetalheLote({
                                 {vendasFiltradas.length > 0 && (
                                     <tfoot className="bg-zinc-50 border-t">
                                         <tr>
-                                            <td colSpan={3} className="p-4 text-right text-[10px] font-black uppercase text-zinc-500">Total desta página</td>
+                                            <td colSpan={4} className="p-4 text-right text-[10px] font-black uppercase text-zinc-500">Total desta página</td>
                                             <td className="p-4 text-right font-mono font-black text-blue-600">
                                                 R$ {vendasFiltradas.reduce((acc: number, cur: any) => acc + cur.valor, 0).toFixed(2)}
                                             </td>
