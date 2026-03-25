@@ -12,7 +12,8 @@ export function exportarGeralCSV(lotes: any[]) {
     const headers = [
         "Data", "Periodo", "Abertura", "Entradas Dinheiro", "Saidas",
         "Saldo em Dinheiro", "PIX", "Debito", "Credito", "Voucher",
-        "Consumo Interno", "Total Vendas", "Saldo Total"
+        "Funcionario", "Pro Labore", "Permuta", "Cortesia",
+        "Total Vendas", "Saldo Total"
     ];
 
     const rows = lotesOrdenados.map((l: any) => {
@@ -21,7 +22,12 @@ export function exportarGeralCSV(lotes: any[]) {
         const entDin = lanc.filter((i: any) => !i.isSaida && i.formaPagamento === 'Dinheiro').reduce((acc: number, i: any) => acc + (i.valor - (i.valorCaixinha || 0)), 0);
         const sai = lanc.filter((i: any) => i.isSaida).reduce((acc: number, i: any) => acc + i.valor, 0);
         const getSum = (f: string) => lanc.filter((i: any) => !i.isSaida && i.formaPagamento === f).reduce((acc: number, i: any) => acc + i.valor, 0);
-        const cons = lanc.filter((i: any) => !i.isSaida && ['Funcionário', 'Cortesia'].includes(i.formaPagamento)).reduce((acc: number, i: any) => acc + i.valor, 0);
+        
+        const func = getSum('Funcionário');
+        const pro = getSum('Pró-labore');
+        const perm = getSum('Permuta');
+        const cort = getSum('Cortesia');
+
         const totalVendas = lanc.filter((i: any) => !i.isSaida).reduce((acc: number, i: any) => acc + i.valor, 0);
 
         return [
@@ -35,7 +41,10 @@ export function exportarGeralCSV(lotes: any[]) {
             getSum('Débito').toFixed(2).replace('.', ','),
             getSum('Crédito').toFixed(2).replace('.', ','),
             getSum('Voucher').toFixed(2).replace('.', ','),
-            cons.toFixed(2).replace('.', ','),
+            func.toFixed(2).replace('.', ','),
+            pro.toFixed(2).replace('.', ','),
+            perm.toFixed(2).replace('.', ','),
+            cort.toFixed(2).replace('.', ','),
             totalVendas.toFixed(2).replace('.', ','),
             (totalVendas + abertura - sai).toFixed(2).replace('.', ',')
         ];
