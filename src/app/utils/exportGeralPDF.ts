@@ -39,9 +39,6 @@ export const exportarRelatorioGeralPDF = (lotes: any[]) => {
         const getSum = (forma: string) => lanc.filter((i: any) => !i.isSaida && i.formaPagamento === forma)
             .reduce((acc: number, i: any) => acc + i.valor, 0);
 
-        const consumo = lanc.filter((i: any) => !i.isSaida && ['Funcionário', 'Cortesia', 'Pró-labore'].includes(i.formaPagamento))
-            .reduce((acc: number, i: any) => acc + i.valor, 0);
-
         const totalVendas = lanc.filter((i: any) => !i.isSaida).reduce((acc: number, i: any) => acc + i.valor, 0);
         
         const saldoGaveta = abertura + entDin - sai;
@@ -57,7 +54,10 @@ export const exportarRelatorioGeralPDF = (lotes: any[]) => {
             getSum('Débito').toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
             getSum('Crédito').toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
             getSum('Voucher').toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
-            consumo.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+            getSum('Funcionário').toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+            getSum('Pró-labore').toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+            getSum('Permuta').toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+            getSum('Cortesia').toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
             { content: totalVendas.toLocaleString('pt-BR', { minimumFractionDigits: 2 }), styles: { fontStyle: 'bold' as const, fillColor: [241, 245, 249] as any } }
         ];
     });
@@ -67,23 +67,26 @@ export const exportarRelatorioGeralPDF = (lotes: any[]) => {
         head: [[
             'DATA', 
             'TURNO', 
-            'ABERTURA', 
-            'DIN. VENDAS', 
-            'SANGRIAS', 
-            'SALDO GAVETA', 
+            'ABER.', 
+            'DIN.', 
+            'SANG.', 
+            'SALDO', 
             'PIX', 
-            'DÉBITO', 
-            'CRÉDITO', 
-            'VOUCHER', 
-            'CONSUMO', 
-            'FATURAMENTO TOTAL'
+            'DÉB.', 
+            'CRÉD.', 
+            'VOUCH.', 
+            'FUNC.', 
+            'PRO.', 
+            'PERM.', 
+            'CORT.', 
+            'TOTAL'
         ]],
         body: body,
         theme: 'striped',
         styles: { 
-            fontSize: 7.5, 
+            fontSize: 6.5, 
             halign: 'center',
-            cellPadding: 3,
+            cellPadding: 2,
             lineColor: [226, 232, 240],
             lineWidth: 0.1,
         },
@@ -91,12 +94,12 @@ export const exportarRelatorioGeralPDF = (lotes: any[]) => {
             fillColor: [30, 41, 59], 
             textColor: [255, 255, 255],
             fontStyle: 'bold',
-            fontSize: 8
+            fontSize: 7
         },
         columnStyles: {
             0: { halign: 'left', fontStyle: 'bold' },
             5: { fillColor: [240, 253, 244] }, // Fundo levemente esverdeado para o Saldo em Mão
-            11: { fillColor: [239, 246, 255] } // Fundo levemente azulado para o Faturamento Total
+            14: { fillColor: [239, 246, 255] } // Fundo levemente azulado para o Faturamento Total
         }
     });
 
