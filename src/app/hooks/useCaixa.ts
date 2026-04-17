@@ -87,8 +87,63 @@ export function useCaixa() {
         setLotes(lotes.map(l => (l.id === loteAtivoId ? { ...l, valorAbertura: novoValor } : l)));
     };
 
-    const alterarStatus = (id: string, novoStatus: string) => {
+    const alterarStatus = async (id: string, novoStatus: string) => {
         setLotes(lotes.map(l => (l.id === id ? { ...l, status: novoStatus } : l)));
+
+        // Quando marcar como "conferido", envia automaticamente para o Metrics
+        if (novoStatus === 'conferido') {
+            const lote = lotes.find(l => l.id === id);
+            if (!lote) return;
+
+            try {
+                // Calcula o resumo do lote
+                const lancamentos = lote.lancamentos || [];
+                const bancos = ['SAFRA', 'PAGBANK', 'CIELO', 'IFOOD'];
+                const formasExcluidas = ['Pró-labore', 'Cortesia', 'Permuta'];
+
+                let totalLiquido = 0;
+
+                lancamentos.forEach((l: any) => {
+                    if (l.isSaida) return; // Ignora sangrias
+                    if (formasExcluidas.includes(l.formaPagamento)) return; // Exclui pró-labore, cortesia, permuta
+
+                    const valor = Number(l.valor || 0);
+                    const caixinha = Number(l.valorCaixinha || 0);
+                    totalLiquido += valor - caixinha; // Valor real da venda (sem gorjeta)
+                });
+
+                if (totalLiquido <= 0) return;
+
+                const METRICS_API = 'https://api.marujogastrobar.tech';
+                const API_KEY = 'marujo-metrics-integration-2026';
+                const ACCOUNT_ID = '36a7075a-16d6-4a31-9eca-2e699564aeb6';
+
+                const response = await fetch(`${METRICS_API}/integration/cash-register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': API_KEY,
+                    },
+                    body: JSON.stringify({
+                        date: lote.dataReferencia,
+                        period: lote.periodo,
+                        totalAmount: totalLiquido,
+                        account_id: ACCOUNT_ID,
+                    }),
+                });
+
+                if (response.ok) {
+                    alert(`✅ Caixa ${lote.periodo} de ${new Date(lote.dataReferencia).toLocaleDateString('pt-BR', { timeZone: 'UTC' })} lançado no Metrics!\nValor: R$ ${totalLiquido.toFixed(2)}`);
+                } else {
+                    const err = await response.json().catch(() => ({}));
+                    console.error('Erro ao lançar no Metrics:', err);
+                    alert(`⚠️ Caixa conferido, mas houve erro ao lançar no Metrics: ${err.message || 'Erro desconhecido'}`);
+                }
+            } catch (err) {
+                console.error('Erro na integração com Metrics:', err);
+                alert('⚠️ Caixa conferido, mas não foi possível conectar ao Metrics. Verifique sua conexão.');
+            }
+        }
     };
 
     const apagarLote = (id: string) => setLotes(lotes.filter(l => l.id !== id));
