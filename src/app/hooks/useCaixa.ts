@@ -98,7 +98,7 @@ export function useCaixa() {
             try {
                 // Calcula o resumo do lote
                 const lancamentos = lote.lancamentos || [];
-                const bancos = ['SAFRA', 'PAGBANK', 'CIELO', 'IFOOD'];
+                const bancos = ['SAFRA', 'PAGBANK', 'CIELO', 'IFOOD', 'STONE'];
                 const formasExcluidas = ['Pró-labore', 'Cortesia', 'Permuta'];
 
                 let totalLiquido = 0;
@@ -150,7 +150,7 @@ export function useCaixa() {
 
     const resumoLote = loteAtivo ? (() => {
         const lancamentos = loteAtivo.lancamentos || [];
-        const bancos = ['SAFRA', 'PAGBANK', 'CIELO', 'IFOOD'];
+        const bancos = ['SAFRA', 'PAGBANK', 'CIELO', 'IFOOD', 'STONE'];
         const formasCasa = ['Funcionário', 'Pró-labore', 'Cortesia', 'Permuta'];
 
         const resumo: any = {

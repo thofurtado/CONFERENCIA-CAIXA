@@ -311,6 +311,7 @@ export function DetalheLote({
                                                                 <option value="SAFRA">SAFRA</option>
                                                                 <option value="PAGBANK">PAGBANK</option>
                                                                 <option value="CIELO">CIELO</option>
+                                                                <option value="STONE">STONE</option>
                                                                 <option value="CONTA DA CASA">CONTA DA CASA</option>
                                                             </select>
                                                         </td>

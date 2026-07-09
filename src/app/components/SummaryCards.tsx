@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react';
 import { Banknote, CreditCard, Smartphone, Landmark, Heart, Ticket, Edit2, Check, X } from 'lucide-react';
 
-const BANCOS_DIGITAIS = ['SAFRA', 'PAGBANK', 'CIELO', 'IFOOD'] as const;
+const BANCOS_DIGITAIS = ['SAFRA', 'PAGBANK', 'CIELO', 'IFOOD', 'STONE'] as const;
 const FORMAS_CASA = ['Funcionário', 'Pró-labore', 'Cortesia', 'Permuta'] as const;
 
 export function SummaryCards({ resumo, onEditAbertura }: { resumo: any, onEditAbertura?: (valor: number) => void }) {

@@ -21,6 +21,6 @@ export interface LoteConferencia {
     lancamentos: Lancamento[];
 }
 
-export const BANCOS_DIGITAIS = ['SAFRA', 'PAGBANK', 'CIELO', 'IFOOD'];
+export const BANCOS_DIGITAIS = ['SAFRA', 'PAGBANK', 'CIELO', 'IFOOD', 'STONE'];
 export const FORMAS_BANCO = ['Pix', 'Voucher', 'Débito', 'Crédito'];
 export const FORMAS_CASA = ['Funcionário', 'Pro-labore', 'Cortesia', 'Permuta'];

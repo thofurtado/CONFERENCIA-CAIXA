@@ -177,6 +177,7 @@ export function TransactionForm({ onAdd }: { onAdd: (dados: any) => void }) {
                                                     <option value="PAGBANK">PAGBANK</option>
                                                     <option value="CIELO">CIELO</option>
                                                     <option value="IFOOD">IFOOD</option>
+                                                    <option value="STONE">STONE</option>
                                                 </>
                                             }
                                         </select>

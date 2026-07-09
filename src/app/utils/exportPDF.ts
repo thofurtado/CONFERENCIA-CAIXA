@@ -34,7 +34,7 @@ export const exportarLotePDF = (lote: any, resumo: any) => {
 
     // --- DASHBOARD DE MÉTRICAS (KPIs) ---
     const saldoGaveta = resumo.CAIXA.entradasDinheiro + resumo.CAIXA.saldoAbertura - resumo.CAIXA.totalSaidas;
-    const faturamentoTotal = (resumo.SAFRA.total + resumo.PAGBANK.total + resumo.CIELO.total + resumo.CAIXA.entradasDinheiro);
+    const faturamentoTotal = (resumo.SAFRA.total + resumo.PAGBANK.total + resumo.CIELO.total + resumo.STONE.total + resumo.CAIXA.entradasDinheiro);
 
     // Cards Principais com Cores de Destaque
     doc.setFillColor(240, 253, 244); // Verde claro
@@ -59,9 +59,9 @@ export const exportarLotePDF = (lote: any, resumo: any) => {
 
     const miniCards = [
         { label: 'ABERTURA', val: fmt(resumo.CAIXA.saldoAbertura) },
-        { label: 'PIX', val: fmt(resumo.SAFRA.PIX + resumo.PAGBANK.PIX + resumo.CIELO.PIX) },
-        { label: 'DÉBITO', val: fmt(resumo.SAFRA.Débito + resumo.PAGBANK.Débito + resumo.CIELO.Débito) },
-        { label: 'CRÉDITO', val: fmt(resumo.SAFRA.Crédito + resumo.PAGBANK.Crédito + resumo.CIELO.Crédito) },
+        { label: 'PIX', val: fmt(resumo.SAFRA.PIX + resumo.PAGBANK.PIX + resumo.CIELO.PIX + resumo.STONE.PIX) },
+        { label: 'DÉBITO', val: fmt(resumo.SAFRA.Débito + resumo.PAGBANK.Débito + resumo.CIELO.Débito + resumo.STONE.Débito) },
+        { label: 'CRÉDITO', val: fmt(resumo.SAFRA.Crédito + resumo.PAGBANK.Crédito + resumo.CIELO.Crédito + resumo.STONE.Crédito) },
         { label: 'GORJETAS', val: fmt(resumo.GERAL.totalCaixinha) },
         { label: 'CONSUMO', val: fmt(consumoInterno) }
     ];
@@ -134,7 +134,8 @@ export const exportarLotePDF = (lote: any, resumo: any) => {
     const bodyBancos: RowInput[] = [
         ['SAFRA', fmt(resumo.SAFRA.PIX), fmt(resumo.SAFRA.Débito), fmt(resumo.SAFRA.Crédito), fmt(resumo.SAFRA.total)],
         ['PAGBANK', fmt(resumo.PAGBANK.PIX), fmt(resumo.PAGBANK.Débito), fmt(resumo.PAGBANK.Crédito), fmt(resumo.PAGBANK.total)],
-        ['CIELO', fmt(resumo.CIELO.PIX), fmt(resumo.CIELO.Débito), fmt(resumo.CIELO.Crédito), fmt(resumo.CIELO.total)]
+        ['CIELO', fmt(resumo.CIELO.PIX), fmt(resumo.CIELO.Débito), fmt(resumo.CIELO.Crédito), fmt(resumo.CIELO.total)],
+        ['STONE', fmt(resumo.STONE.PIX), fmt(resumo.STONE.Débito), fmt(resumo.STONE.Crédito), fmt(resumo.STONE.total)]
     ];
 
     autoTable(doc, {
