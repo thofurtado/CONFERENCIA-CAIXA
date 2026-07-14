@@ -9,6 +9,7 @@ export function useCaixa() {
     const [lotes, setLotes] = useState<any[]>([]);
     const [loteAtivoId, setLoteAtivoId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isDataLoaded, setIsDataLoaded] = useState(false);
 
     useEffect(() => {
         async function loadData() {
@@ -16,14 +17,20 @@ export function useCaixa() {
             try {
                 if (IS_PROD) {
                     const response = await fetch(API_URL);
+                    if (!response.ok) throw new Error("Falha na resposta do servidor");
                     const data = await response.json();
-                    if (Array.isArray(data)) setLotes(data);
+                    if (Array.isArray(data)) {
+                        setLotes(data);
+                    }
+                    setIsDataLoaded(true);
                 } else {
                     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
                     if (saved) setLotes(JSON.parse(saved));
+                    setIsDataLoaded(true);
                 }
             } catch (err) {
                 console.error("Erro ao carregar dados:", err);
+                alert("Erro ao carregar os dados. O sistema foi bloqueado para edição por segurança para não apagar o banco de dados.");
             } finally {
                 setLoading(false);
             }
@@ -32,7 +39,7 @@ export function useCaixa() {
     }, []);
 
     useEffect(() => {
-        if (loading) return;
+        if (loading || !isDataLoaded) return;
 
         if (IS_PROD) {
             fetch(API_URL, {
@@ -43,7 +50,7 @@ export function useCaixa() {
         } else {
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(lotes));
         }
-    }, [lotes, loading]);
+    }, [lotes, loading, isDataLoaded]);
 
     const loteAtivo = lotes.find(l => l.id === loteAtivoId);
 
